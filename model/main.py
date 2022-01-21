@@ -2,6 +2,7 @@ import torch as t
 from torch.utils.data import DataLoader
 import torch.optim as optim
 from utils import TourDataset
+from utils import split_train_test
 from matrix import Matrix
 from NGCF import NGCF
 from bprloss import BPR
@@ -13,25 +14,50 @@ device = t.device('cuda' if t.cuda.is_available() else 'cpu')
 print(f'device: {device}')
 
 root_path = '../dataset'
-dataset = TourDataset(root_dir=root_path,
-                      label_col='congestion_1')
-dates, users, items, labels =dataset.dates, dataset.users, dataset.items, dataset.labels
+total_df, train_df, test_df = split_train_test(root_dir=root_path, label_col='congestion_1')
+
+"""
+train_dataset = TourDataset(df=train_df,
+                            total_df=total_df,
+                            label_col='congestion_1',
+                            train=True)
+"""
+test_dataset = TourDataset(df=train_df,
+                            total_df=total_df,
+                            label_col='congestion_1',
+                            train=False)
+
+for i, u in test_dataset:
+    print(i)
+    print(u)
+    print(i.shape)
+    print(u.shape)
+    break
+
+"""
+train_loader = DataLoader(dataset=train_dataset,
+                          batch_size=256,
+                          shuffle=False,
+                          drop_last=True)
+"""
+test_loader = DataLoader(dataset=test_dataset,
+                          batch_size=256,
+                          shuffle=False,
+                          drop_last=True)
+
+for u,p in test_loader:
+    print(u)
+    print(p)
+    print(u.shape)
+    print(p.shape)
+    break
 
 
-train_datalodaer = DataLoader(dataset=dataset,
-                              batch_size=256,
-                              shuffle=False,
-                              drop_last=True)
-
-n_user = len(users.unique())
-n_item = len(items.unique())
-
-print(n_item)
-
-
-
-
-sparse_lap_mat, eye_mat = Matrix(users=users, items=items, device=device).create_matrix()
+# train 코드에 dataloader 부분에 넣기
+matrix_generator = Matrix(total_df=total_df,
+                         label_col='congestion_1',
+                         device=device)
+lap_list, eye_mat = matrix_generator.create_matrix()
 
 model = NGCF(n_user=n_user,
              n_item=n_item,
