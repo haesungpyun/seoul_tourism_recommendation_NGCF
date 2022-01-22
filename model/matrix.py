@@ -10,21 +10,17 @@ class Matrix(object):
     """
     def __init__(self, total_df:pd.DataFrame,
                  cols: list,
-                 label_col: str,
                  device):
 
         self.df = total_df[cols]
         self.device = device
-        self.label_col = label_col
         self.n_user = len(total_df['useridx'].unique())
         self.n_item = len(total_df['itemidx'].unique())
 
         self.R = sp.dok_matrix((self.n_user, self.n_item), dtype=np.float32)
         self.adj_mat = sp.dok_matrix((self.n_user + self.n_item, self.n_user + self.n_item), dtype=np.float32)
         self.eye_mat = sp.dok_matrix(sp.eye(self.n_user+self.n_item), dtype=np.float32)
-        self.lap_list = []
-        for _ in range(len(self.df['dateidx'].unique())):
-            self.lap_list.append([])
+        self.lap_list = torch.empty((len(total_df['dateidx'].unique()), self.n_user+self.n_item, self.n_user+self.n_item))
 
     def create_matrix(self):
         for date in self.df['dateidx'].unique():
@@ -44,7 +40,9 @@ class Matrix(object):
             d_mat_inv = sp.diags(d_sqrt)
             adj_mat = d_mat_inv.dot(self.adj_mat).dot(d_mat_inv)
 
-            self.lap_list[date] = self._convert_sp_mat_to_sp_tensor(adj_mat).to(device=self.device)
+            self.lap_list[date] = torch.from_numpy(adj_mat.toarray()).to(self.device)
+            #self.lap_list[date] = self._convert_sp_mat_to_sp_tensor(adj_mat).to(self.device)
+        print('Laplacian Matrix Created!')
         return self.lap_list, self.eye_mat
 
     def _convert_sp_mat_to_sp_tensor(self, matrix_sp):
@@ -52,5 +50,4 @@ class Matrix(object):
         idxs = torch.LongTensor(np.mat([coo.row, coo.col]))
         vals = torch.from_numpy(coo.data.astype(np.float32))  # as_tensor보다 from_numpy가 빠름
         return torch.sparse.FloatTensor(idxs, vals, coo.shape)
-
 

@@ -41,7 +41,7 @@ class NGCF(nn.Module):
         self.lin_2 = nn.Linear(in_features=self.emb_size // 2, out_features=self.emb_size, bias=True)
         self.user_lin.append(self.lin_1)
         self.user_lin.append(self.lin_2)
-        self.user_lin = nn.Sequential(*self.layer_list)
+        self.user_lin = nn.Sequential(*self.user_lin)
 
         self.w1_list = []
         self.w2_list = []
@@ -94,10 +94,8 @@ class NGCF(nn.Module):
         drop_mat = torch.sparse.FloatTensor(i, v, mat.shape).to(self.device)
         return drop_mat
 
-    def forward(self, dateidx, user_features, pos_item, neg_item, node_flag):
-        user_idx = user_features[0]
-        user_features = user_features[1:]
-        user_mlp = self.user_lin(user_features)
+    def forward(self, dateidx, user_idx, u_feats, pos_item, neg_item, node_flag):
+        user_mlp = self.user_lin(u_feats)
 
         L = self.lap_list[dateidx]
 
@@ -142,6 +140,4 @@ class NGCF(nn.Module):
         if len(neg_item) > 0:
             neg_i_embeddings = self.all_items_emb[neg_item, :]
         return u_embeddings, pos_i_embeddings, neg_i_embeddings
-
-
 

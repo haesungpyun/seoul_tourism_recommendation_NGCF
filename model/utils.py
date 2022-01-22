@@ -12,7 +12,7 @@ def split_train_test(root_dir, label_col) -> (pd.DataFrame, pd.DataFrame, pd.Dat
     '''
     path = os.path.join(root_dir, 'data.csv')
     total_df = pd.read_csv(path)
-    total_df = total_df[:100000]
+    #total_df = total_df.sample(100000)
     train_dataframe = total_df
     test_dataframe = None
     for i in range(1):
@@ -47,7 +47,7 @@ class TourDataset(Dataset):
         self.label_col = label_col
         self.train = train
 
-        self.users, self.items = self._negative_sampling
+        self.users, self.items = self._negative_sampling()
         print(f'len users:{self.users.shape}')
         print(f'len items:{self.items.shape}')
 
@@ -69,11 +69,10 @@ class TourDataset(Dataset):
         # self.items[index][0]: positive feedback
         # self.items[index][1]: negative feedback
         if self.train:
-            return self.users[index][0], self.users[index][1:], self.items[index][0], self.items[index][1]
+            return self.users[index][0], self.users[index][1], self.users[index][2:], self.items[index][0], self.items[index][1]
         else:
-            return self.users[index][0], self.users[index][1:], self.items[index]
+            return self.users[index][0], self.users[index][1], self.users[index][2:], self.items[index]
 
-    @property
     def _negative_sampling(self):
         '''
         sampling one positive feedback per one negative feedback
@@ -135,4 +134,4 @@ class TourDataset(Dataset):
                 items_list.append(item)
                 users_list.append([date, uid, a, d, t, s])
         print('Sampling ended!')
-        return torch.LongTensor(users_list), torch.LongTensor(items_list)
+        return torch.FloatTensor(users_list), torch.FloatTensor(items_list)

@@ -28,12 +28,20 @@ class Train():
 
             total_loss = 0
 
-            for date, user_features, pos_item, neg_item in self.train_dataloader:
-                date, user_features = date.to(self.device), user_features.to(self.device)
+            for date, u_id, u_feats, pos_item, neg_item in self.train_dataloader:
+                date, u_id, u_feats = date.to(self.device), u_id.to(self.device), u_feats.to(self.device)
                 pos_item, neg_item = pos_item.to(self.device), neg_item.to(self.device)
 
+                print('Train')
+                print('date', date.shape, date)
+                print('u_id', u_id.shape, u_id)
+                print('u_feats', u_feats.shape, u_feats)
+                print('pos_item', pos_item.shape, pos_item)
+                print('neg_item', neg_item.shape, neg_item)
+
                 u_embeds, pos_i_embeds, neg_i_embeds = self.model(dateidx=date,
-                                                                  user_features=user_features,
+                                                                  user_idx=u_id,
+                                                                  u_feats=u_feats,
                                                                   pos_item=pos_item,
                                                                   neg_item=neg_item,
                                                                   node_flag=True)
@@ -51,7 +59,7 @@ class Train():
                         ks=args.ks,
                         device=self.device)
 
-            print('|epoch loss: {}|'.format((total_loss/len(self.train_dataloader))))
+            print('|epoch loss: {}|'.format((total_loss / len(self.train_dataloader))))
             test.eval()
 
 
@@ -84,13 +92,20 @@ class Test():
         NDCG = []
         HR = []
         with torch.no_grad():
-            for date, user_features, pos_items in self.dataloader:
-                date, user_features, pos_items =\
-                    date.to(self.device), user_features.to(self.device), pos_items.to(self.device)
+            for date, u_id, u_feats, pos_item in self.dataloader:
+                date, u_id, u_feats, pos_item = date.to(self.device), u_id.to(self.device), u_feats.to(
+                    self.device), pos_item.to(self.device)
+
+                print('Test')
+                print('date', date.shape, date)
+                print('u_id', u_id.shape, u_id)
+                print('u_feats', u_feats.shape, u_feats)
+                print('pos_item', pos_item.shape, pos_item)
 
                 u_embeds, pos_i_embeds, _ = self.model(dateidx=date,
-                                                       user_features=user_features,
-                                                       pos_items=pos_items,
+                                                       user_idx=u_id,
+                                                       u_feats=u_feats,
+                                                       pos_items=pos_item,
                                                        neg_items=torch.empty(0),
                                                        node_flag=False)
 
@@ -100,11 +115,11 @@ class Test():
                 print('pred_rank', pred_rank)
 
                 recommends = torch.take(
-                    pos_items, pred_rank).cpu().numpy().tolist()
+                    pos_item, pred_rank).cpu().numpy().tolist()
 
                 print('recommend', recommends)
 
-                gt_rank = pos_items[0].item()
+                gt_rank = pos_item[0].item()
                 print('gt_rank', gt_rank)
 
                 HR.append(self.hit(gt_item=gt_rank, pred_items=recommends))
