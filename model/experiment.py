@@ -1,5 +1,5 @@
 from torch.utils.data import Dataset
-import torch as t
+import torch
 import torch.nn as nn
 import os
 import numpy as np
@@ -9,10 +9,10 @@ from parsers import args
 class Train():
     def __init__(self,
                  model: nn.Module,
-                 optimizer: t.optim,
+                 optimizer: torch.optim,
                  criterion: nn.Module,
-                 train_dataloader: t.utils.data.DataLoader,
-                 test_dataloader: t.utils.data.DataLoader,
+                 train_dataloader: torch.utils.data.DataLoader,
+                 test_dataloader: torch.utils.data.DataLoader,
                  epochs: int,
                  device):
         self.model = model
@@ -31,13 +31,18 @@ class Train():
             for date, user_features, pos_item, neg_item in self.train_dataloader:
                 date, user_features = date.to(self.device), user_features.to(self.device)
                 pos_item, neg_item = pos_item.to(self.device), neg_item.to(self.device)
-                u_embeds, pos_i_embeds, neg_i_embeds = self.model(date, user_features, pos_item, neg_item, True)
 
+                u_embeds, pos_i_embeds, neg_i_embeds = self.model(dateidx=date,
+                                                                  user_features=user_features,
+                                                                  pos_item=pos_item,
+                                                                  neg_item=neg_item,
+                                                                  node_flag=True)
                 self.optimizer.zero_grad()
                 loss = self.criterion(u_embeds, pos_i_embeds, neg_i_embeds)
                 loss.backward()
                 self.optimizer.step()
                 total_loss += loss
+                break
 
             print('epoch {}'.format(epoch + 1))
 
@@ -53,7 +58,7 @@ class Train():
 class Test():
     def __init__(self,
                  model: nn.Module,
-                 dataloader: t.utils.data.DataLoader,
+                 dataloader: torch.utils.data.DataLoader,
                  ks: int,
                  device):
         self.model = model
@@ -78,25 +83,34 @@ class Test():
     def eval(self):
         NDCG = []
         HR = []
-        with t.no_grad():
-            for u_id, pos_items in self.dataloader:
-                u_id, pos_items = u_id.to(self.device), pos_items.to(self.device)
+        with torch.no_grad():
+            for date, user_features, pos_items in self.dataloader:
+                date, user_features, pos_items =\
+                    date.to(self.device), user_features.to(self.device), pos_items.to(self.device)
 
-                u_embeds, pos_i_embeds, _ = self.model(users=u_id,
+                u_embeds, pos_i_embeds, _ = self.model(dateidx=date,
+                                                       user_features=user_features,
                                                        pos_items=pos_items,
-                                                       neg_items=t.empty(0),
+                                                       neg_items=torch.empty(0),
                                                        node_flag=False)
 
-                pred_ratings = t.mm(u_embeds, pos_i_embeds.T)
-                _, pred_rank = t.topk(pred_ratings[0], self.ks)
+                pred_ratings = torch.mm(u_embeds, pos_i_embeds.T)
+                _, pred_rank = torch.topk(pred_ratings[0], self.ks)
 
-                recommends = t.take(
+                print('pred_rank', pred_rank)
+
+                recommends = torch.take(
                     pos_items, pred_rank).cpu().numpy().tolist()
 
+                print('recommend', recommends)
+
                 gt_rank = pos_items[0].item()
+                print('gt_rank', gt_rank)
 
                 HR.append(self.hit(gt_item=gt_rank, pred_items=recommends))
                 NDCG.append(self.Ndcg(gt_item=gt_rank, pred_items=recommends))
+                print('HR:{}, NDCG:{}'.format((HR), (NDCG)))
+                break
 
         print('HR:{}, NDCG:{}'.format(np.mean(HR), np.mean(NDCG)))
 

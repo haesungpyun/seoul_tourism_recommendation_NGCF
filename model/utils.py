@@ -1,4 +1,4 @@
-import torch as t
+import torch
 from torch.utils.data import Dataset
 import pandas as pd
 import numpy as np
@@ -10,9 +10,9 @@ def split_train_test(root_dir, label_col) -> (pd.DataFrame, pd.DataFrame, pd.Dat
     pick each unique userid row, and add to the testset, delete from trainset.
     :return: (pd.DataFrame,pd.DataFrame,pd.DataFrame)
     '''
-    path = os.path.join(root_dir, 'scale_data.csv')
+    path = os.path.join(root_dir, 'data.csv')
     total_df = pd.read_csv(path)
-    total_df = total_df
+    total_df = total_df[:100000]
     train_dataframe = total_df
     test_dataframe = None
     for i in range(1):
@@ -47,7 +47,7 @@ class TourDataset(Dataset):
         self.label_col = label_col
         self.train = train
 
-        self.users, self.items = self._negative_sampling()
+        self.users, self.items = self._negative_sampling
         print(f'len users:{self.users.shape}')
         print(f'len items:{self.items.shape}')
 
@@ -73,11 +73,13 @@ class TourDataset(Dataset):
         else:
             return self.users[index][0], self.users[index][1:], self.items[index]
 
+    @property
     def _negative_sampling(self):
         '''
         sampling one positive feedback per one negative feedback
         :return: dataframe
         '''
+        print('Extract samples...')
         df = self.df
         total_df = self.total_df
         users_list, items_list = [], []
@@ -132,24 +134,5 @@ class TourDataset(Dataset):
             if self.train:
                 items_list.append(item)
                 users_list.append([date, uid, a, d, t, s])
-
-        return t.tensor(users_list), t.tensor(items_list)
-
-
-        """
-        def _split_data_labels(self):
-            df = self.total_df
-            user_col_list = [col for col in df.columns if
-                             col not in ['date', 'destination', 'congestion_1', 'congestion_2']]
-            dates, users, items, labels = df['date'], df[user_col_list], df['destination'], df[self.label_col]
-    
-            dates = dates.values.tolist()
-            users = users.values.tolist()
-            items = items.values.tolist()
-            labels = labels.values.tolist()
-    
-            print(f'len(dates):{len(dates)}, len(users):{len(users)}, len(items):{len(items)}, len(labels):{len(labels)}')
-    
-            return t.FloatTensor(dates), t.FloatTensor(users), t.LongTensor(items), t.FloatTensor(labels)
-    
-        """
+        print('Sampling ended!')
+        return torch.LongTensor(users_list), torch.LongTensor(items_list)

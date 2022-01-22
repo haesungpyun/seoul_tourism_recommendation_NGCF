@@ -1,4 +1,4 @@
-import torch as t
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
@@ -13,8 +13,8 @@ class NGCF(nn.Module):
                  node_dropout: float,
                  mess_dropout: list,
                  mlp_ratio: float,
-                 lap_list: t.sparse.FloatTensor,
-                 eye_mat: t.sparse.FloatTensor,
+                 lap_list: torch.sparse.FloatTensor,
+                 eye_mat: torch.sparse.FloatTensor,
                  device):
         super(NGCF, self).__init__()
 
@@ -31,8 +31,8 @@ class NGCF(nn.Module):
         self.mess_dropout = mess_dropout
         self.mlp_ratio = mlp_ratio
 
-        # self.user_embedding = nn.Parameter(t.randn(self.n_user, self.emb_size))
-        # self.item_embedding = nn.Parameter(t.randn(self.n_item, self.emb_size))
+        # self.user_embedding = nn.Parameter(torch.randn(self.n_user, self.emb_size))
+        # self.item_embedding = nn.Parameter(torch.randn(self.n_item, self.emb_size))
         self.user_embedding = nn.Embedding(self.n_user, self.emb_size)
         self.item_embedding = nn.Embedding(self.n_item, self.emb_size)
 
@@ -49,7 +49,6 @@ class NGCF(nn.Module):
         self.mess_dropout_list = []
 
         self.lap_list = lap_list
-        self.L = t.tensor(t.empty(0))
         self.eye_mat = eye_mat
 
         self.set_layers()
@@ -86,28 +85,27 @@ class NGCF(nn.Module):
         self.mess_dropout_list = nn.Sequential(*self.mess_dropout_list)
 
     def sparse_dropout(self, mat):
-        node_mask = nn.Dropout(self.node_dropout)(t.tensor(np.ones(mat._nnz()))).type(t.bool)
+        node_mask = nn.Dropout(self.node_dropout)(torch.tensor(np.ones(mat._nnz()))).type(torch.bool)
         i = mat._indices()
         v = mat._values()
         i = i[:, node_mask]
         v = v[node_mask]
 
-        drop_mat = t.sparse.FloatTensor(i, v, mat.shape).to(self.device)
+        drop_mat = torch.sparse.FloatTensor(i, v, mat.shape).to(self.device)
         return drop_mat
 
     def forward(self, dateidx, user_features, pos_item, neg_item, node_flag):
-
         user_idx = user_features[0]
         user_features = user_features[1:]
-
         user_mlp = self.user_lin(user_features)
 
         L = self.lap_list[dateidx]
 
-        with t.no_grad():
-            self.user_embedding.weight[user_idx] = self.user_embedding.weight[user_idx] * (1-self.mlp_ratio) + user_mlp * self.mlp_ratio
+        with torch.no_grad():
+            self.user_embedding.weight[user_idx] =\
+                self.user_embedding.weight[user_idx] * (1-self.mlp_ratio) + user_mlp * self.mlp_ratio
 
-        E = t.cat((self.user_embedding.weight, self.item_embedding.weight), dim=0)
+        E = torch.cat((self.user_embedding.weight, self.item_embedding.weight), dim=0)
         all_E = [E]
 
         for i in range(self.n_layer):
@@ -117,10 +115,10 @@ class NGCF(nn.Module):
             else:
                 L = L
 
-            L_I_E = t.mm(L + self.eye_mat, E)
+            L_I_E = torch.mm(L + self.eye_mat, E)
             L_I_E_W1 = self.w1_list[i](L_I_E)
 
-            L_E = t.mm(L, E)
+            L_E = torch.mm(L, E)
             L_E_E = L_E * E
             L_I_E_W2 = self.w2_list[i](L_E_E)
 
@@ -134,13 +132,13 @@ class NGCF(nn.Module):
 
             all_E += [norm_embedding]
 
-        all_E = t.cat(all_E, dim=1)
+        all_E = torch.cat(all_E, dim=1)
         self.all_users_emb = all_E[:self.n_user, :]
         self.all_items_emb = all_E[self.n_user:, :]
 
         u_embeddings = self.all_users_emb[user_idx, :]
         pos_i_embeddings = self.all_items_emb[pos_item, :]
-        neg_i_embeddings = t.empty(0)
+        neg_i_embeddings = torch.empty(0)
         if len(neg_item) > 0:
             neg_i_embeddings = self.all_items_emb[neg_item, :]
         return u_embeddings, pos_i_embeddings, neg_i_embeddings

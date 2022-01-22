@@ -1,4 +1,4 @@
-import torch as t
+import torch
 from torch.utils.data import DataLoader
 import torch.optim as optim
 from utils import TourDataset
@@ -10,45 +10,52 @@ from experiment import Train, Test
 from parsers import args
 
 
-device = t.device('cuda' if t.cuda.is_available() else 'cpu')
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f'device: {device}')
 
 root_path = '../dataset'
 total_df, train_df, test_df = split_train_test(root_dir=root_path, label_col='congestion_1')
 
-"""
+n_user = len(total_df['useridx'].unique())
+n_item = len(total_df['itemidx'].unique())
+
 train_dataset = TourDataset(df=train_df,
                             total_df=total_df,
                             label_col='congestion_1',
                             train=True)
-"""
+
 test_dataset = TourDataset(df=train_df,
                             total_df=total_df,
                             label_col='congestion_1',
                             train=False)
 
-for i, u in test_dataset:
-    print(i)
-    print(u)
-    print(i.shape)
-    print(u.shape)
-    break
-
-"""
 train_loader = DataLoader(dataset=train_dataset,
                           batch_size=256,
                           shuffle=False,
                           drop_last=True)
-"""
+
 test_loader = DataLoader(dataset=test_dataset,
-                          batch_size=256,
+                          batch_size=100,
                           shuffle=False,
                           drop_last=True)
 
-for u,p in test_loader:
-    print(u)
+for date, uid, ufeat, p, n in train_loader:
+    print('train')
+    print(date, uid, ufeat)
+    print(p, n)
+    print(date.shape)
+    print(uid.shape)
+    print(ufeat.shape)
+    print(p.shape, n.shape)
+    break
+
+for date, uid, ufeat, p in test_loader:
+    print('test')
+    print(date, uid, ufeat)
     print(p)
-    print(u.shape)
+    print(date.shape)
+    print(uid.shape)
+    print(ufeat.shape)
     print(p.shape)
     break
 

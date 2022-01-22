@@ -1,8 +1,7 @@
 import pandas as pd
-import torch as t
+import torch
 import scipy.sparse as sp
 import numpy as np
-
 
 
 class Matrix(object):
@@ -17,20 +16,19 @@ class Matrix(object):
         self.df = total_df[cols]
         self.device = device
         self.label_col = label_col
-        self.n_user = len(total_df.useridx.unique())
-        self.n_item = len(total_df.itemidx.unique())
-        self.n_days = len(total_df.date.unique())
+        self.n_user = len(total_df['useridx'].unique())
+        self.n_item = len(total_df['itemidx'].unique())
 
         self.R = sp.dok_matrix((self.n_user, self.n_item), dtype=np.float32)
         self.adj_mat = sp.dok_matrix((self.n_user + self.n_item, self.n_user + self.n_item), dtype=np.float32)
-        self.eye_mat = sp.dok_matrix(sp.eye(self.n_user+self.n_item), dtype=np.flaot32)
+        self.eye_mat = sp.dok_matrix(sp.eye(self.n_user+self.n_item), dtype=np.float32)
         self.lap_list = []
         for _ in range(len(self.df['dateidx'].unique())):
             self.lap_list.append([])
 
     def create_matrix(self):
         for date in self.df['dateidx'].unique():
-            df_tmp = self.df[self.df.dateidx.isin([date])]
+            df_tmp = self.df[self.df['dateidx'].isin([date])]
             self.R[df_tmp['useridx'], df_tmp['itemidx']] = 1.0
 
             # A = [[0, R],[R.T,0]]
@@ -51,8 +49,8 @@ class Matrix(object):
 
     def _convert_sp_mat_to_sp_tensor(self, matrix_sp):
         coo = matrix_sp.tocoo()
-        idxs = t.LongTensor(np.mat([coo.row, coo.col]))
-        vals = t.from_numpy(coo.data.astype(np.float32))  # as_tensor보다 from_numpy가 빠름
-        return t.sparse.FloatTensor(idxs, vals, coo.shape)
+        idxs = torch.LongTensor(np.mat([coo.row, coo.col]))
+        vals = torch.from_numpy(coo.data.astype(np.float32))  # as_tensor보다 from_numpy가 빠름
+        return torch.sparse.FloatTensor(idxs, vals, coo.shape)
 
 

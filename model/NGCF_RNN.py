@@ -1,4 +1,4 @@
-import torch as t
+import torch
 import torch.nn as nn
 import numpy as np
 from NGCF import NGCF
@@ -12,8 +12,8 @@ class NGCF_RNN(nn.Module):
                  layer_size: list,
                  node_dropout: float,
                  mess_dropout: list,
-                 lap_mat: t.sparse.FloatTensor,
-                 eye_mat: t.sparse.FloatTensor,
+                 lap_mat: torch.sparse.FloatTensor,
+                 eye_mat: torch.sparse.FloatTensor,
                  device):
         super(NGCF_RNN, self).__init__()
 
