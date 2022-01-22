@@ -12,7 +12,8 @@ class NGCF(nn.Module):
                  layer_size: list,
                  node_dropout: float,
                  mess_dropout: list,
-                 lap_mat: t.sparse.FloatTensor,
+                 mlp_ratio: float,
+                 lap_list: t.sparse.FloatTensor,
                  eye_mat: t.sparse.FloatTensor,
                  device):
         super(NGCF, self).__init__()
@@ -28,6 +29,7 @@ class NGCF(nn.Module):
 
         self.node_dropout = node_dropout
         self.mess_dropout = mess_dropout
+        self.mlp_ratio = mlp_ratio
 
         # self.user_embedding = nn.Parameter(t.randn(self.n_user, self.emb_size))
         # self.item_embedding = nn.Parameter(t.randn(self.n_item, self.emb_size))
@@ -46,7 +48,8 @@ class NGCF(nn.Module):
         self.node_dropout_list = []
         self.mess_dropout_list = []
 
-        self.L = lap_mat
+        self.lap_list = lap_list
+        self.L = t.tensor(t.empty(0))
         self.eye_mat = eye_mat
 
         self.set_layers()
@@ -92,16 +95,17 @@ class NGCF(nn.Module):
         drop_mat = t.sparse.FloatTensor(i, v, mat.shape).to(self.device)
         return drop_mat
 
-    def forward(self, user_features, pos_features, neg_features, node_flag, mlp_ratio):
+    def forward(self, dateidx, user_features, pos_item, neg_item, node_flag):
+
         user_idx = user_features[0]
         user_features = user_features[1:]
-        pos_idx = pos_features[0]
-        neg_idx = neg_features[0]
 
         user_mlp = self.user_lin(user_features)
 
+        L = self.lap_list[dateidx]
+
         with t.no_grad():
-            self.user_embedding.weight[user_idx] = self.user_embedding.weight[user_idx] * (1-mlp_ratio) + user_mlp * mlp_ratio
+            self.user_embedding.weight[user_idx] = self.user_embedding.weight[user_idx] * (1-self.mlp_ratio) + user_mlp * self.mlp_ratio
 
         E = t.cat((self.user_embedding.weight, self.item_embedding.weight), dim=0)
         all_E = [E]
@@ -109,9 +113,9 @@ class NGCF(nn.Module):
         for i in range(self.n_layer):
             if node_flag:
                 # node dropout laplacian matrix
-                L = self.sparse_dropout(self.L)
+                L = self.sparse_dropout(L)
             else:
-                L = self.L
+                L = L
 
             L_I_E = t.mm(L + self.eye_mat, E)
             L_I_E_W1 = self.w1_list[i](L_I_E)
@@ -135,10 +139,10 @@ class NGCF(nn.Module):
         self.all_items_emb = all_E[self.n_user:, :]
 
         u_embeddings = self.all_users_emb[user_idx, :]
-        pos_i_embeddings = self.all_items_emb[pos_idx, :]
+        pos_i_embeddings = self.all_items_emb[pos_item, :]
         neg_i_embeddings = t.empty(0)
-        if len(neg_idx) > 0:
-            neg_i_embeddings = self.all_items_emb[neg_idx, :]
+        if len(neg_item) > 0:
+            neg_i_embeddings = self.all_items_emb[neg_item, :]
         return u_embeddings, pos_i_embeddings, neg_i_embeddings
 
 

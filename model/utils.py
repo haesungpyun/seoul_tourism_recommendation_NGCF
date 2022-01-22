@@ -69,9 +69,9 @@ class TourDataset(Dataset):
         # self.items[index][0]: positive feedback
         # self.items[index][1]: negative feedback
         if self.train:
-            return self.users[index], self.items[index][0], self.items[index][1]
+            return self.users[index][0], self.users[index][1:], self.items[index][0], self.items[index][1]
         else:
-            return self.users[index], self.items[index]
+            return self.users[index][0], self.users[index][1:], self.items[index]
 
     def _negative_sampling(self):
         '''
@@ -81,22 +81,22 @@ class TourDataset(Dataset):
         df = self.df
         total_df = self.total_df
         users_list, items_list = [], []
-        user_item_set = zip(df['useridx'],
+        user_item_set = zip(df['dateidx'],
+                            df['useridx'],
                             df['age'],
                             df['dayofweek'],
                             df['time'],
                             df['sex'],
-                            df['itemidx'],
-                            df['destination'])
+                            df['itemidx'])
 
-        total_user_item_set = zip(total_df['useridx'],
+        total_user_item_set = zip(total_df['dateidx'],
+                                  total_df['useridx'],
                                   total_df['age'],
                                   total_df['dayofweek'],
                                   total_df['time'],
                                   total_df['sex'],
-                                  total_df['itemidx'],
-                                  total_df['destination'])
-        all_destinations = total_df['destination'].unique()
+                                  total_df['itemidx'])
+        all_destinations = total_df['itemidx'].unique()
 
         # negative feedback dataset ratio
         if self.train:
@@ -104,21 +104,21 @@ class TourDataset(Dataset):
         else:
             ng_ratio = 99
 
-        for uid, a, d, t, s, iid, i in user_item_set:
+        for date, uid, a, d, t, s, iid in user_item_set:
             # positive instance
             visit = []
             item = []
             if not self.train:
-                items_list.append([iid, i])
-                users_list.append([uid, a, d, t, s])
+                items_list.append(iid)
+                users_list.append([date, uid, a, d, t, s])
             else:
-                item.append([iid, i])
+                item.append(iid)
 
             for k in range(ng_ratio):
                 # negative instance
                 negative_item = np.random.choice(all_destinations)
                 # check if item and user has interaction, if true then set new value from random
-                while (uid, a, d, t, s, negative_item) in total_user_item_set or negative_item in visit:
+                while (date, uid, a, d, t, s, negative_item) in total_user_item_set or negative_item in visit:
                     negative_item = np.random.choice(all_destinations)
 
                 if self.train:
@@ -127,11 +127,11 @@ class TourDataset(Dataset):
                 else:
                     items_list.append(negative_item)
                     visit.append(negative_item)
-                    users_list.append([uid, a, d, t, s])
+                    users_list.append([date, uid, a, d, t, s])
 
             if self.train:
                 items_list.append(item)
-                users_list.append([uid, a, d, t, s])
+                users_list.append([date, uid, a, d, t, s])
 
         return t.tensor(users_list), t.tensor(items_list)
 

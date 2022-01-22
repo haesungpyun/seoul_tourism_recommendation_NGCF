@@ -55,8 +55,9 @@ for u,p in test_loader:
 
 # train 코드에 dataloader 부분에 넣기
 matrix_generator = Matrix(total_df=total_df,
-                         label_col='congestion_1',
-                         device=device)
+                        cols=['age', 'dayofweek', 'time', 'sex'],
+                        label_col='congestion_1',
+                        device=device)
 lap_list, eye_mat = matrix_generator.create_matrix()
 
 model = NGCF(n_user=n_user,
@@ -65,7 +66,8 @@ model = NGCF(n_user=n_user,
              layer_size=[64, 64, 64],
              node_dropout=0.2,
              mess_dropout=[0.1, 0.1, 0.1],
-             lap_mat=sparse_lap_mat,
+             mlp_ratio=0.5,
+             lap_list=lap_list,
              eye_mat=eye_mat,
              device=device).to(device=device)
 

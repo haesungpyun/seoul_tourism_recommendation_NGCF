@@ -28,9 +28,10 @@ class Train():
 
             total_loss = 0
 
-            for u_id, pos_item, neg_item in self.train_dataloader:
-                u_id, pos_item, neg_item = u_id.to(self.device), pos_item.to(self.device), neg_item.to(self.device)
-                u_embeds, pos_i_embeds, neg_i_embeds = self.model(u_id, pos_item, neg_item, True)
+            for date, user_features, pos_item, neg_item in self.train_dataloader:
+                date, user_features = date.to(self.device), user_features.to(self.device)
+                pos_item, neg_item = pos_item.to(self.device), neg_item.to(self.device)
+                u_embeds, pos_i_embeds, neg_i_embeds = self.model(date, user_features, pos_item, neg_item, True)
 
                 self.optimizer.zero_grad()
                 loss = self.criterion(u_embeds, pos_i_embeds, neg_i_embeds)
