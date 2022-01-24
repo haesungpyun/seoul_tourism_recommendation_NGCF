@@ -12,7 +12,6 @@ def split_train_test(root_dir, label_col) -> (pd.DataFrame, pd.DataFrame, pd.Dat
     '''
     path = os.path.join(root_dir, 'data.csv')
     total_df = pd.read_csv(path)
-    #total_df = total_df.sample(100000)
     train_dataframe = total_df
     test_dataframe = None
     for i in range(1):
@@ -28,8 +27,8 @@ def split_train_test(root_dir, label_col) -> (pd.DataFrame, pd.DataFrame, pd.Dat
     train_dataframe.loc[:, 'congestion_1'] = 1
     test_dataframe.loc[:, 'congestion_1'] = 1
 
-    test_dataframe = test_dataframe.sort_values(by=['date', 'time'], axis=0)
-    train_dataframe = train_dataframe.sort_values(by=['date', 'time'], axis=0)
+    test_dataframe = test_dataframe.sort_values(by=['dateidx'], axis=0)
+    train_dataframe = train_dataframe.sort_values(by=['dateidx'], axis=0)
     print(f"len(total): {len(total_df)}, len(train): {len(train_dataframe)}, len(test): {len(test_dataframe)}")
     return total_df, train_dataframe, test_dataframe,
 
@@ -51,6 +50,7 @@ class TourDataset(Dataset):
         print(f'len users:{self.users.shape}')
         print(f'len items:{self.items.shape}')
 
+
     def __len__(self) -> int:
         '''
         get lenght of data
@@ -69,9 +69,9 @@ class TourDataset(Dataset):
         # self.items[index][0]: positive feedback
         # self.items[index][1]: negative feedback
         if self.train:
-            return self.users[index][0], self.users[index][1], self.users[index][2:], self.items[index][0], self.items[index][1]
+            return self.users[index][0],  self.users[index][1], self.users[index][2:], self.items[index][0], self.items[index][1]
         else:
-            return self.users[index][0], self.users[index][1], self.users[index][2:], self.items[index]
+            return self.users[index][1], self.users[index][1], self.users[index][2:], self.items[index]
 
     def _negative_sampling(self):
         '''
@@ -103,7 +103,7 @@ class TourDataset(Dataset):
         if self.train:
             ng_ratio = 1
         else:
-            ng_ratio = 99
+            ng_ratio = 9
 
         for date, uid, a, d, t, s, iid in user_item_set:
             # positive instance
@@ -117,10 +117,15 @@ class TourDataset(Dataset):
 
             for k in range(ng_ratio):
                 # negative instance
+                i=0
                 negative_item = np.random.choice(all_destinations)
                 # check if item and user has interaction, if true then set new value from random
                 while (date, uid, a, d, t, s, negative_item) in total_user_item_set or negative_item in visit:
                     negative_item = np.random.choice(all_destinations)
+                    i += 1
+                    if i > 100:
+                        print('infinite loop', i)
+                        raise RuntimeError
 
                 if self.train:
                     item.append(negative_item)
@@ -134,4 +139,5 @@ class TourDataset(Dataset):
                 items_list.append(item)
                 users_list.append([date, uid, a, d, t, s])
         print('Sampling ended!')
-        return torch.FloatTensor(users_list), torch.FloatTensor(items_list)
+        return torch.LongTensor(users_list), torch.LongTensor(items_list)
+
