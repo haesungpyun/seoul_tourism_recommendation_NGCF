@@ -24,43 +24,34 @@ class Train():
         self.device = device
 
     def train(self):
-        for epoch in range(self.epochs):
 
-            total_loss = 0
+        with torch.autograd.set_detect_anomaly(True):
+            for epoch in range(self.epochs):
+                total_loss = 0
+                for date, u_id, u_feats, pos_item, neg_item in self.train_dataloader:
+                    date, u_id, u_feats = date.to(self.device), u_id.to(self.device), u_feats.float().to(self.device)
+                    pos_item, neg_item = pos_item.to(self.device), neg_item.to(self.device)
 
-            for date, u_id, u_feats, pos_item, neg_item in self.train_dataloader:
-                date, u_id, u_feats = date.to(self.device), u_id.to(self.device), u_feats.to(self.device)
-                pos_item, neg_item = pos_item.to(self.device), neg_item.to(self.device)
+                    u_embeds, pos_i_embeds, neg_i_embeds = self.model(dateidx=date,
+                                                                      user_idx=u_id,
+                                                                      u_feats=u_feats,
+                                                                      pos_item=pos_item,
+                                                                      neg_item=neg_item,
+                                                                      node_flag=True)
+                    self.optimizer.zero_grad()
+                    loss = self.criterion(u_embeds, pos_i_embeds, neg_i_embeds)
+                    loss.backward()
+                    self.optimizer.step()
+                    total_loss += loss
 
-                print('Train')
-                print('date', date.shape, date)
-                print('u_id', u_id.shape, u_id)
-                print('u_feats', u_feats.shape, u_feats)
-                print('pos_item', pos_item.shape, pos_item)
-                print('neg_item', neg_item.shape, neg_item)
+                print('epoch {}'.format(epoch + 1))
 
-                u_embeds, pos_i_embeds, neg_i_embeds = self.model(dateidx=date,
-                                                                  user_idx=u_id,
-                                                                  u_feats=u_feats,
-                                                                  pos_item=pos_item,
-                                                                  neg_item=neg_item,
-                                                                  node_flag=True)
-                self.optimizer.zero_grad()
-                loss = self.criterion(u_embeds, pos_i_embeds, neg_i_embeds)
-                loss.backward()
-                self.optimizer.step()
-                total_loss += loss
-                break
-
-            print('epoch {}'.format(epoch + 1))
-
-            test = Test(model=self.model,
-                        dataloader=self.test_dataloader,
-                        ks=args.ks,
-                        device=self.device)
-
-            print('|epoch loss: {}|'.format((total_loss / len(self.train_dataloader))))
-            test.eval()
+                test = Test(model=self.model,
+                            dataloader=self.test_dataloader,
+                            ks=args.ks,
+                            device=self.device)
+                print('|epoch loss: {}|'.format((total_loss / len(self.train_dataloader))))
+                test.eval()
 
 
 class Test():
@@ -93,14 +84,8 @@ class Test():
         HR = []
         with torch.no_grad():
             for date, u_id, u_feats, pos_item in self.dataloader:
-                date, u_id, u_feats, pos_item = date.to(self.device), u_id.to(self.device), u_feats.to(
+                date, u_id, u_feats, pos_item = date.to(self.device), u_id.to(self.device), u_feats.float().to(
                     self.device), pos_item.to(self.device)
-
-                print('Test')
-                print('date', date.shape, date)
-                print('u_id', u_id.shape, u_id)
-                print('u_feats', u_feats.shape, u_feats)
-                print('pos_item', pos_item.shape, pos_item)
 
                 u_embeds, pos_i_embeds, _ = self.model(dateidx=date,
                                                        user_idx=u_id,
@@ -128,5 +113,4 @@ class Test():
                 break
 
         print('HR:{}, NDCG:{}'.format(np.mean(HR), np.mean(NDCG)))
-
 

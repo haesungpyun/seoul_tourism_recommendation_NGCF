@@ -24,58 +24,34 @@ train_dataset = TourDataset(df=train_df,
                             label_col='congestion_1',
                             train=True)
 
+train_loader = DataLoader(dataset=train_dataset,
+                          batch_size=args.batch_size,
+                          shuffle=False,
+                          drop_last=True)
+
 test_dataset = TourDataset(df=train_df,
                             total_df=total_df,
                             label_col='congestion_1',
                             train=False)
 
-train_loader = DataLoader(dataset=train_dataset,
-                          batch_size=256,
-                          shuffle=False,
-                          drop_last=True)
-
 test_loader = DataLoader(dataset=test_dataset,
-                          batch_size=100,
+                          batch_size=args.test_batch,
                           shuffle=False,
                           drop_last=True)
 
-for date, uid, ufeat, p, n in train_loader:
-    print('train')
-    print(date, uid, ufeat)
-    print(p, n)
-    print(date.shape)
-    print(uid.shape)
-    print(ufeat.shape)
-    print(p.shape, n.shape)
-    break
-
-for date, uid, ufeat, p in test_loader:
-    print('test')
-    print(date, uid, ufeat)
-    print(p)
-    print(date.shape)
-    print(uid.shape)
-    print(ufeat.shape)
-    print(p.shape)
-    break
-
-
-# train 코드에 dataloader 부분에 넣기
 matrix_generator = Matrix(total_df=total_df,
-                        cols=['age', 'dayofweek', 'time', 'sex'],
-                        label_col='congestion_1',
+                        cols=['dateidx', 'useridx', 'itemidx'],
                         device=device)
-lap_list, eye_mat = matrix_generator.create_matrix()
+lap_list = matrix_generator.create_matrix()
 
 model = NGCF(n_user=n_user,
              n_item=n_item,
-             embed_size=64,
+             embed_size=args.embed_size,
              layer_size=[64, 64, 64],
-             node_dropout=0.2,
-             mess_dropout=[0.1, 0.1, 0.1],
-             mlp_ratio=0.5,
+             node_dropout=args.node_dropout,
+             mess_dropout=args.mess_dropout,
+             mlp_ratio=args.mlp_ratio,
              lap_list=lap_list,
-             eye_mat=eye_mat,
              device=device).to(device=device)
 
 if __name__ == '__main__':
@@ -97,12 +73,3 @@ if __name__ == '__main__':
                 dataloader=test_loader,
                 ks=args.ks,
                 device=device)
-
-
-
-
-
-
-
-
-
