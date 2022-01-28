@@ -13,7 +13,7 @@ from parsers import args
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f'device: {device}')
 
-root_path = '../dataset'
+root_path = '../data'
 total_df, train_df, test_df = split_train_test(root_dir=root_path, train_by_destination=False)
 
 

@@ -102,15 +102,10 @@ class Test():
                 pred_ratings = torch.mm(u_embeds, pos_i_embeds.T)
                 _, pred_rank = torch.topk(pred_ratings[0], self.ks)
 
-                print('pred_rank', pred_rank)
-
                 recommends = torch.take(
                     pos_item, pred_rank).cpu().numpy().tolist()
 
-                print('recommend', recommends)
-
                 gt_rank = pos_item[0].item()
-                print('gt_rank', gt_rank)
 
                 HR.append(self.hit(gt_item=gt_rank, pred_items=recommends))
                 NDCG.append(self.Ndcg(gt_item=gt_rank, pred_items=recommends))

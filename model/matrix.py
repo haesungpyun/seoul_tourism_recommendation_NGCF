@@ -39,7 +39,8 @@ class Matrix(object):
             d_mat_inv = sp.diags(d_sqrt)
             adj_mat = d_mat_inv.dot(self.adj_mat).dot(d_mat_inv)
 
-            self.lap_list[year] = torch.from_numpy(adj_mat.toarray()).to(self.device)
+            year_idx = year % 18
+            self.lap_list[year_idx] = torch.from_numpy(adj_mat.toarray()).to(self.device)
             #self.lap_list[date] = self._convert_sp_mat_to_sp_tensor(adj_mat).to(self.device)
         print('Laplacian Matrix Created!')
         return self.lap_list
