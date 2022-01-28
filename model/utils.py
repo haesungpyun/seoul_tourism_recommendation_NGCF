@@ -92,7 +92,7 @@ class TourDataset(Dataset):
 
         for i in df['userid'].unique():
             tmp = df.loc[df['userid'].isin([i])]
-            med = total_df['congestion_1'].median()
+            med = tmp['congestion_1'].median()
             pos_item_set = zip(tmp['year'],
                                 tmp['userid'],
                                 tmp['age'],
