@@ -103,6 +103,7 @@ class TourDataset(Dataset):
             neg_items = list(set(all_destinations)-set(tmp.loc[tmp['congestion_1'] >= med, 'itemid']))
 
             for year, uid, a, d, s, iid in pos_item_set:
+                tmp_negs = neg_items
                 # positive instance
                 item=[]
                 if not self.train:
@@ -114,7 +115,7 @@ class TourDataset(Dataset):
                 for k in range(ng_ratio):
                     # negative instance
                     i = 0
-                    negative_item = neg_items.pop()
+                    negative_item = tmp_negs.pop()
 
                     if self.train:
                         item.append(negative_item)
