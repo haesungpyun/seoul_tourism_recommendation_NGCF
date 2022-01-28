@@ -128,5 +128,5 @@ class TourDataset(Dataset):
                     items_list.append(item)
                     users_list.append([year, uid, a, d, s])
         print('Sampling ended!')
-        return torch.LongTensor(users_list), torch.Longensor(items_list)
+        return torch.LongTensor(users_list), torch.LongTensor(items_list)
 
