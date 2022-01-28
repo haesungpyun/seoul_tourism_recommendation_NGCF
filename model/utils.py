@@ -100,9 +100,7 @@ class TourDataset(Dataset):
                                 tmp['sex'],
                                 tmp.loc[tmp['congestion_1'] >= med, 'itemid'])
 
-            neg_items = list(tmp.loc[tmp['congestion_1'] < med, 'itemid'])
-            nil = list(set(all_destinations)-set(tmp.loc[tmp['congestion_1'] >= med, 'itemid'])-set(neg_items))
-            neg_items += nil
+            neg_items = list(set(all_destinations)-set(tmp.loc[tmp['congestion_1'] >= med, 'itemid']))
 
             for year, uid, a, d, s, iid in pos_item_set:
                 # positive instance
