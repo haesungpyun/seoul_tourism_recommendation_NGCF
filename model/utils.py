@@ -18,8 +18,6 @@ def split_train_test(root_dir:str,
     path = os.path.join(root_dir, 'date_data.csv')
     total_df = pd.read_csv(path)
 
-
-    # explicit feedback -> implicit feedback
     # ignore warnings
     np.warnings.filterwarnings('ignore')
 
