@@ -21,8 +21,8 @@ def split_train_test(root_dir:str,
     # ignore warnings
     np.warnings.filterwarnings('ignore')
 
-    df2018 = total_df[total_df['year'] == 2018]
-    df2019 = total_df[total_df['year'] == 2019]
+    df2018 = total_df.loc[total_df['year'] == 2018]
+    df2019 = total_df.loc[total_df['year'] == 2019]
 
     if train_by_destination:
         train_dataframe, test_dataframe, y_train, y_test = train_test_split(total_df, total_df['destination'], test_size=0.3,
@@ -30,7 +30,7 @@ def split_train_test(root_dir:str,
     else:
         train_dataframe = df2018
         test_dataframe = df2019
-        total_df = total_df[total_df['year'] != 2020]
+        total_df = total_df.loc[total_df['year'] != 2020]
     print(f"len(total): {len(total_df)}, len(train): {len(train_dataframe)}, len(test): {len(test_dataframe)}")
     return total_df, train_dataframe, test_dataframe,
 

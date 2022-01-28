@@ -43,7 +43,7 @@ test_loader = DataLoader(dataset=test_dataset,
                           drop_last=True)
 
 matrix_generator = Matrix(total_df=total_df,
-                        cols=['year', 'userid', 'itemid'],
+                        cols=['year', 'userid', 'itemid', 'congestion_1'],
                         device=device)
 lap_list = matrix_generator.create_matrix()
 
