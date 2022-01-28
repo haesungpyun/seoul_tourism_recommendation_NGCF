@@ -1,34 +1,38 @@
+import random
+
 import torch
 from torch.utils.data import Dataset
 import pandas as pd
 import numpy as np
 import os
+from sklearn.model_selection import train_test_split
 
 
-def split_train_test(root_dir, label_col) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame):
+def split_train_test(root_dir:str,
+                     train_by_destination:bool) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame):
     '''
     pick each unique userid row, and add to the testset, delete from trainset.
     :return: (pd.DataFrame,pd.DataFrame,pd.DataFrame)
     '''
-    path = os.path.join(root_dir, 'data.csv')
+
+    path = os.path.join(root_dir, 'date_data.csv')
     total_df = pd.read_csv(path)
-    train_dataframe = total_df
-    test_dataframe = None
-    for i in range(1):
-        tmp_dataframe = train_dataframe.sample(frac=1).drop_duplicates(['useridx'])
-        test_dataframe = pd.concat([tmp_dataframe, test_dataframe])
-        tmp_dataframe2 = pd.concat([train_dataframe, tmp_dataframe])
-        train_dataframe = tmp_dataframe2.drop_duplicates(keep=False)
+
 
     # explicit feedback -> implicit feedback
     # ignore warnings
     np.warnings.filterwarnings('ignore')
-    # positive feedback (interaction exists)
-    train_dataframe.loc[:, 'congestion_1'] = 1
-    test_dataframe.loc[:, 'congestion_1'] = 1
 
-    test_dataframe = test_dataframe.sort_values(by=['dateidx'], axis=0)
-    train_dataframe = train_dataframe.sort_values(by=['dateidx'], axis=0)
+    df2018 = total_df[total_df['year'] == 2018]
+    df2019 = total_df[total_df['year'] == 2019]
+
+    if train_by_destination:
+        train_dataframe, test_dataframe, y_train, y_test = train_test_split(total_df, total_df['destination'], test_size=0.3,
+                                                              stratify=total_df['destination'], random_state=42)
+    else:
+        train_dataframe = df2018
+        test_dataframe = df2019
+        total_df = total_df[total_df['year'] != 2020]
     print(f"len(total): {len(total_df)}, len(train): {len(train_dataframe)}, len(test): {len(test_dataframe)}")
     return total_df, train_dataframe, test_dataframe,
 
@@ -37,13 +41,11 @@ class TourDataset(Dataset):
     def __init__(self,
                  df: pd.DataFrame,
                  total_df: pd.DataFrame,
-                 label_col: str,
                  train: bool):
         super(TourDataset, self).__init__()
 
         self.df = df
         self.total_df = total_df
-        self.label_col = label_col
         self.train = train
 
         self.users, self.items = self._negative_sampling()
@@ -69,9 +71,9 @@ class TourDataset(Dataset):
         # self.items[index][0]: positive feedback
         # self.items[index][1]: negative feedback
         if self.train:
-            return self.users[index][0],  self.users[index][1], self.users[index][2:], self.items[index][0], self.items[index][1]
+            return self.users[index][0],  self.users[index][1], self.users[index][2], self.users[index][3], self.users[index][4], self.items[index][0], self.items[index][1]
         else:
-            return self.users[index][1], self.users[index][1], self.users[index][2:], self.items[index]
+            return self.users[index][1], self.users[index][1], self.users[index][2], self.users[index][3], self.users[index][4], self.items[index]
 
     def _negative_sampling(self):
         '''
@@ -82,22 +84,7 @@ class TourDataset(Dataset):
         df = self.df
         total_df = self.total_df
         users_list, items_list = [], []
-        user_item_set = zip(df['dateidx'],
-                            df['useridx'],
-                            df['age'],
-                            df['dayofweek'],
-                            df['time'],
-                            df['sex'],
-                            df['itemidx'])
-
-        total_user_item_set = zip(total_df['dateidx'],
-                                  total_df['useridx'],
-                                  total_df['age'],
-                                  total_df['dayofweek'],
-                                  total_df['time'],
-                                  total_df['sex'],
-                                  total_df['itemidx'])
-        all_destinations = total_df['itemidx'].unique()
+        all_destinations = total_df['itemid'].unique()
 
         # negative feedback dataset ratio
         if self.train:
@@ -105,39 +92,43 @@ class TourDataset(Dataset):
         else:
             ng_ratio = 9
 
-        for date, uid, a, d, t, s, iid in user_item_set:
-            # positive instance
-            visit = []
-            item = []
-            if not self.train:
-                items_list.append(iid)
-                users_list.append([date, uid, a, d, t, s])
-            else:
-                item.append(iid)
+        for i in df['userid'].unique():
+            tmp = df.loc[df['userid'].isin([i])]
+            med = tmp['congestion_1'].median()
+            pos_item_set = zip(tmp['year'],
+                                tmp['userid'],
+                                tmp['age'],
+                                tmp['dayofweek'],
+                                tmp['sex'],
+                                tmp.loc[tmp['congestion_1'] >= med, 'itemid'])
 
-            for k in range(ng_ratio):
-                # negative instance
-                i=0
-                negative_item = np.random.choice(all_destinations)
-                # check if item and user has interaction, if true then set new value from random
-                while (date, uid, a, d, t, s, negative_item) in total_user_item_set or negative_item in visit:
-                    negative_item = np.random.choice(all_destinations)
-                    i += 1
-                    if i > 100:
-                        print('infinite loop', i)
-                        raise RuntimeError
+            neg_items = list(tmp.loc[tmp['congestion_1'] < med, 'itemid'])
+            nil = list(set(all_destinations)-set(tmp.loc[tmp['congestion_1'] >= med, 'itemid'])-set(neg_items))
+            neg_items += nil
+
+            for year, uid, a, d, s, iid in pos_item_set:
+                # positive instance
+                item=[]
+                if not self.train:
+                    items_list.append(iid)
+                    users_list.append([year, uid, a, d, s])
+                else:
+                    item.append(iid)
+
+                for k in range(ng_ratio):
+                    # negative instance
+                    i = 0
+                    negative_item = neg_items.pop()
+
+                    if self.train:
+                        item.append(negative_item)
+                    else:
+                        items_list.append(negative_item)
+                        users_list.append([year, uid, a, d, s])
 
                 if self.train:
-                    item.append(negative_item)
-                    visit.append(negative_item)
-                else:
-                    items_list.append(negative_item)
-                    visit.append(negative_item)
-                    users_list.append([date, uid, a, d, t, s])
-
-            if self.train:
-                items_list.append(item)
-                users_list.append([date, uid, a, d, t, s])
+                    items_list.append(item)
+                    users_list.append([year, uid, a, d, s])
         print('Sampling ended!')
-        return torch.LongTensor(users_list), torch.LongTensor(items_list)
+        return torch.LongTensor(users_list), torch.Longensor(items_list)
 

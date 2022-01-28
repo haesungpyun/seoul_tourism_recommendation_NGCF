@@ -14,14 +14,18 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f'device: {device}')
 
 root_path = '../dataset'
-total_df, train_df, test_df = split_train_test(root_dir=root_path, label_col='congestion_1')
+total_df, train_df, test_df = split_train_test(root_dir=root_path, train_by_destination=False)
 
-n_user = len(total_df['useridx'].unique())
-n_item = len(total_df['itemidx'].unique())
+
+num_dict = {'user': total_df['userid'].nunique(),
+            'item': total_df['itemid'].nunique(),
+            'day': total_df['dayofweek'].nunique(),
+            'sex': total_df['sex'].nunique(),
+            'age': total_df['age'].nunique(),
+            'date': total_df['month-day'].nunique()}
 
 train_dataset = TourDataset(df=train_df,
                             total_df=total_df,
-                            label_col='congestion_1',
                             train=True)
 
 train_loader = DataLoader(dataset=train_dataset,
@@ -31,7 +35,6 @@ train_loader = DataLoader(dataset=train_dataset,
 
 test_dataset = TourDataset(df=train_df,
                             total_df=total_df,
-                            label_col='congestion_1',
                             train=False)
 
 test_loader = DataLoader(dataset=test_dataset,
@@ -40,18 +43,17 @@ test_loader = DataLoader(dataset=test_dataset,
                           drop_last=True)
 
 matrix_generator = Matrix(total_df=total_df,
-                        cols=['dateidx', 'useridx', 'itemidx'],
+                        cols=['year', 'userid', 'itemid'],
                         device=device)
 lap_list = matrix_generator.create_matrix()
 
-model = NGCF(n_user=n_user,
-             n_item=n_item,
-             embed_size=args.embed_size,
+model = NGCF(embed_size=args.embed_size,
              layer_size=[64, 64, 64],
              node_dropout=args.node_dropout,
              mess_dropout=args.mess_dropout,
              mlp_ratio=args.mlp_ratio,
              lap_list=lap_list,
+             num_dict=num_dict,
              device=device).to(device=device)
 
 if __name__ == '__main__':

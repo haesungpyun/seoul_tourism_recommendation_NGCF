@@ -14,17 +14,17 @@ class Matrix(object):
 
         self.df = total_df[cols]
         self.device = device
-        self.n_user = len(total_df['useridx'].unique())
-        self.n_item = len(total_df['itemidx'].unique())
+        self.n_user = (total_df['userid'].nunique())
+        self.n_item = (total_df['itemid'].nunique())
 
         self.R = sp.dok_matrix((self.n_user, self.n_item), dtype=np.float32)
         self.adj_mat = sp.dok_matrix((self.n_user + self.n_item, self.n_user + self.n_item), dtype=np.float32)
-        self.lap_list = torch.empty((len(total_df['dateidx'].unique()), self.n_user+self.n_item, self.n_user+self.n_item))
+        self.lap_list = torch.empty((total_df['year'].nunique(), self.n_user+self.n_item, self.n_user+self.n_item))
 
     def create_matrix(self):
-        for date in self.df['dateidx'].unique():
-            df_tmp = self.df[self.df['dateidx'].isin([date])]
-            self.R[df_tmp['useridx'], df_tmp['itemidx']] = 1.0
+        for year in self.df['year'].unique():
+            df_tmp = self.df[self.df['year'].isin([year])]
+            self.R[df_tmp['userid'], df_tmp['itemid']] = df_tmp['congestion_1']
 
             # A = [[0, R],[R.T,0]]
             adj_mat = self.adj_mat.tolil()
@@ -39,7 +39,7 @@ class Matrix(object):
             d_mat_inv = sp.diags(d_sqrt)
             adj_mat = d_mat_inv.dot(self.adj_mat).dot(d_mat_inv)
 
-            self.lap_list[date] = torch.from_numpy(adj_mat.toarray()).to(self.device)
+            self.lap_list[year] = torch.from_numpy(adj_mat.toarray()).to(self.device)
             #self.lap_list[date] = self._convert_sp_mat_to_sp_tensor(adj_mat).to(self.device)
         print('Laplacian Matrix Created!')
         return self.lap_list

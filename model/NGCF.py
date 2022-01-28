@@ -8,19 +8,18 @@ from parsers import args
 
 class NGCF(nn.Module):
     def __init__(self,
-                 n_user: int,
-                 n_item: int,
                  embed_size: int,
                  layer_size: list,
                  node_dropout: float,
                  mess_dropout: list,
                  mlp_ratio: float,
                  lap_list: list,
+                 num_dict: dict,
                  device):
         super(NGCF, self).__init__()
 
-        self.n_user = n_user
-        self.n_item = n_item
+        self.n_user = num_dict['user']
+        self.n_item = num_dict['item']
 
         self.emb_size = embed_size
         self.weight_size = layer_size
@@ -34,15 +33,22 @@ class NGCF(nn.Module):
 
         # self.user_embedding = nn.Parameter(torch.randn(self.n_user, self.emb_size))
         # self.item_embedding = nn.Parameter(torch.randn(self.n_item, self.emb_size))
-        self.user_embedding = nn.Embedding(self.n_user, self.emb_size)
+        self.date_emb = nn.Embedding(num_dict['date'], self.emb_size)
+        self.day_emb = nn.Embedding(num_dict['day'], self.emb_size)
+        self.sex_emb = nn.Embedding(num_dict['sex'], self.emb_size)
+        self.age_emb = nn.Embedding(num_dict['age'], self.emb_size)
         self.item_embedding = nn.Embedding(self.n_item, self.emb_size)
+        self.user_embedding = nn.Embedding(self.n_user, self.emb_size)
 
         self.user_lin = []
         self.lin_1 = nn.Linear(in_features=4, out_features=self.emb_size // 2, bias=True)
         self.lin_2 = nn.Linear(in_features=self.emb_size // 2, out_features=self.emb_size)
         self.user_lin.append(self.lin_1)
+        self.user_lin.append(nn.LeakyReLU())
         self.user_lin.append(self.lin_2)
+        self.user_lin.append(nn.LeakyReLU())
         self.user_lin = nn.Sequential(*self.user_lin)
+
 
         self.w1_list = []
         self.w2_list = []
@@ -59,8 +65,13 @@ class NGCF(nn.Module):
         initializer = nn.init.xavier_uniform_
 
         # initial embedding layer
-        initializer(self.item_embedding.weight)
         initializer(self.user_embedding.weight)
+        initializer(self.item_embedding.weight)
+
+        initializer(self.day_emb.weight)
+        initializer(self.sex_emb.weight)
+        initializer(self.age_emb.weight)
+        initializer(self.date_emb.weight)
 
         weight_size_list = [self.emb_size] + self.weight_size
 
@@ -85,9 +96,9 @@ class NGCF(nn.Module):
         self.node_dropout_list = nn.Sequential(*self.node_dropout_list)
         self.mess_dropout_list = nn.Sequential(*self.mess_dropout_list)
 
-    def sparse_dropout(self, L, dateidx):
+    def sparse_dropout(self, L, dateid):
         lap = torch.FloatTensor(torch.empty(*L.size())).to(self.device)
-        for i in dateidx:
+        for i in dateid:
             mat = sp.dok_matrix(L[i].cpu().detach().numpy())
             mat = self._convert_sp_mat_to_sp_tensor(mat)
             node_mask = nn.Dropout(self.node_dropout)(torch.tensor(np.ones(mat._nnz()))).type(torch.bool)
@@ -104,13 +115,18 @@ class NGCF(nn.Module):
         vals = torch.from_numpy(coo.data.astype(np.float32))  # as_tensor보다 from_numpy가 빠름
         return torch.sparse.FloatTensor(idxs, vals, coo.shape)
 
-    def forward(self, dateidx, user_idx, u_feats, pos_item, neg_item, node_flag):
-        user_mlp = self.user_lin(u_feats)
-        L = self.lap_list[dateidx].to(self.device)
+    def forward(self, year, u_id, age, day, sex, pos_item, neg_item, node_flag):
+        age = self.age_emb(age)
+        date = self.date_emb(day)
+        sex = self.sex_emb(sex)
+        feats = torch.cat((age, date, sex), dim=-1)
+        user_mlp = self.user_lin(feats)
+
+        L = self.lap_list[year].to(self.device)
 
         with torch.no_grad():
-            self.user_embedding.weight[user_idx] = \
-                self.user_embedding.weight[user_idx] * (1 - self.mlp_ratio) + user_mlp * self.mlp_ratio
+            self.user_embedding.weight[u_id] = \
+                self.user_embedding.weight[u_id] * (1 - self.mlp_ratio) + user_mlp * self.mlp_ratio
 
         E = torch.cat((self.user_embedding.weight, self.item_embedding.weight), dim=0)
         E = E.unsqueeze(0).expand(args.batch_size, *E.size())
@@ -119,7 +135,7 @@ class NGCF(nn.Module):
         for i in range(self.n_layer):
             if node_flag:
                 # node dropout laplacian matrix
-                L = self.sparse_dropout(L, dateidx)
+                L = self.sparse_dropout(L, year)
             else:
                 L = L
 
@@ -144,7 +160,7 @@ class NGCF(nn.Module):
         self.all_users_emb = all_E[:, :self.n_user, :]
         self.all_items_emb = all_E[:, self.n_user:, :]
 
-        u_embeddings = self.all_users_emb[:, user_idx, :]
+        u_embeddings = self.all_users_emb[:, u_id, :]
         pos_i_embeddings = self.all_items_emb[:, pos_item, :]
         neg_i_embeddings = torch.empty(0)
         if len(neg_item) > 0:

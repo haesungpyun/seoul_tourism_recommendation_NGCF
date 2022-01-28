@@ -28,14 +28,17 @@ class Train():
         with torch.autograd.set_detect_anomaly(True):
             for epoch in range(self.epochs):
                 total_loss = 0
-                for date, u_id, u_feats, pos_item, neg_item in self.train_dataloader:
-                    date, u_id, u_feats = date.to(self.device), u_id.to(self.device), u_feats.float().to(self.device)
+                for year, u_id, age, day, sex, pos_item, neg_item in self.train_dataloader:
+                    year, u_id = year.to(self.device), u_id.to(self.device)
+                    age, day, sex = age.to(self.device), day.to(self.device), sex.to(self.device)
                     pos_item, neg_item = pos_item.to(self.device), neg_item.to(self.device)
 
-                    u_embeds, pos_i_embeds, neg_i_embeds = self.model(dateidx=date,
-                                                                      user_idx=u_id,
-                                                                      u_feats=u_feats,
-                                                                      pos_item=pos_item,
+                    u_embeds, pos_i_embeds, neg_i_embeds = self.model(year=year,
+                                                                      u_id=u_id,
+                                                                      age=age,
+                                                                      day=day,
+                                                                      sex=sex,
+                                                                      pos_items=pos_item,
                                                                       neg_item=neg_item,
                                                                       node_flag=True)
                     self.optimizer.zero_grad()
@@ -83,13 +86,15 @@ class Test():
         NDCG = []
         HR = []
         with torch.no_grad():
-            for date, u_id, u_feats, pos_item in self.dataloader:
-                date, u_id, u_feats, pos_item = date.to(self.device), u_id.to(self.device), u_feats.float().to(
-                    self.device), pos_item.to(self.device)
+            for year, u_id, age, day, sex, pos_item in self.dataloader:
+                year, u_id, pos_item = year.to(self.device), u_id.to(self.device), pos_item.to(self.device)
+                age, day, sex = age.to(self.device), day.to(self.device), sex.to(self.device)
 
-                u_embeds, pos_i_embeds, _ = self.model(dateidx=date,
-                                                       user_idx=u_id,
-                                                       u_feats=u_feats,
+                u_embeds, pos_i_embeds, _ = self.model(year=year,
+                                                       u_id=u_id,
+                                                       age=age,
+                                                       day=day,
+                                                       sex=sex,
                                                        pos_items=pos_item,
                                                        neg_items=torch.empty(0),
                                                        node_flag=False)
