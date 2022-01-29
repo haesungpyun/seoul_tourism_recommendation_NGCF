@@ -2,7 +2,7 @@ import torch
 from torch.utils.data import DataLoader
 import torch.optim as optim
 from utils import TourDataset
-from utils import split_train_test
+from utils import Preprocess
 from matrix import Matrix
 from NGCF import NGCF
 from bprloss import BPR
@@ -14,11 +14,11 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f'device: {device}')
 
 root_path = '../data'
-total_df, train_df, test_df = split_train_test(root_dir=root_path, train_by_destination=False)
+total_df, train_df, test_df = Preprocess(root_dir=root_path, train_by_destination=False).split_train_test()
 
 
-num_dict = {'user': total_df['userid'].nunique(),
-            'item': total_df['itemid'].nunique(),
+num_dict = {'user': total_df['userid'].max()+1,
+            'item': total_df['itemid'].max()+1,
             'day': total_df['dayofweek'].nunique(),
             'sex': total_df['sex'].nunique(),
             'age': total_df['age'].nunique(),
@@ -44,6 +44,7 @@ test_loader = DataLoader(dataset=test_dataset,
 
 matrix_generator = Matrix(total_df=total_df,
                         cols=['year', 'userid', 'itemid', 'congestion_1'],
+                        num_dict=num_dict,
                         device=device)
 lap_list = matrix_generator.create_matrix()
 

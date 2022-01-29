@@ -10,12 +10,13 @@ class Matrix(object):
     """
     def __init__(self, total_df:pd.DataFrame,
                  cols: list,
+                 num_dict:dict,
                  device):
 
         self.df = total_df[cols]
         self.device = device
-        self.n_user = (total_df['userid'].nunique())
-        self.n_item = (total_df['itemid'].nunique())
+        self.n_user = num_dict['user']
+        self.n_item = num_dict['item']
 
         self.R = sp.dok_matrix((self.n_user, self.n_item), dtype=np.float32)
         self.adj_mat = sp.dok_matrix((self.n_user + self.n_item, self.n_user + self.n_item), dtype=np.float32)
@@ -24,6 +25,9 @@ class Matrix(object):
     def create_matrix(self):
         for year in self.df['year'].unique():
             df_tmp = self.df[self.df['year'].isin([year])]
+            print(self.R.shape)
+            print(df_tmp['userid'].max())
+            print(df_tmp['itemid'].max())
             self.R[df_tmp['userid'], df_tmp['itemid']] = df_tmp['congestion_1']
 
             # A = [[0, R],[R.T,0]]

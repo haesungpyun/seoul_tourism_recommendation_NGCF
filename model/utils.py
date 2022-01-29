@@ -1,40 +1,73 @@
 import random
 
 import torch
+from pandas import Series
 from torch.utils.data import Dataset
 import pandas as pd
 import numpy as np
 import os
 from sklearn.model_selection import train_test_split
 
+class Preprocess(object):
+    def __init__(self, root_dir: str,
+                         train_by_destination: bool) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame):
 
-def split_train_test(root_dir: str,
-                     train_by_destination: bool) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame):
-    '''
-    pick each unique userid row, and add to the testset, delete from trainset.
-    :return: (pd.DataFrame,pd.DataFrame,pd.DataFrame)
-    '''
+        self.root_dir = root_dir
+        self.train_by_destination = train_by_destination
+        self.df_raw = self.load_data()
 
-    path = os.path.join(root_dir, 'date_data.csv')
-    total_df = pd.read_csv(path)
+    def load_data(self):
+        root_dir = self.root_dir
 
-    # ignore warnings
-    np.warnings.filterwarnings('ignore')
+        path = os.path.join(root_dir, 'date_data.csv')
+        return pd.read_csv(path)
 
-    df2018 = total_df.loc[total_df['year'] == 18]
-    df2019 = total_df.loc[total_df['year'] == 19]
+    def map_userid(self):
+        train_by_destination = self.train_by_destination
 
-    if train_by_destination:
-        train_dataframe, test_dataframe, y_train, y_test = train_test_split(total_df, total_df['destination'],
-                                                                            test_size=0.3,
-                                                                            stratify=total_df['destination'],
-                                                                            random_state=42)
-    else:
-        train_dataframe = df2018
-        test_dataframe = df2019
-        total_df = total_df.loc[total_df['year'] != 20]
-    print(f"len(total): {len(total_df)}, len(train): {len(train_dataframe)}, len(test): {len(test_dataframe)}")
-    return total_df, train_dataframe, test_dataframe,
+        if train_by_destination:
+            df = self.df_raw
+        else:
+            df = self.df_raw.loc[self.df_raw['year'] != 20]
+
+        def merge_cols():
+            merged = df['dayofweek'].apply('str') + df['age'].apply('str') + \
+                     df['sex'].apply('str') + df['month-day'].apply('str')
+            user_map = {item: i for i, item in enumerate(np.sort(merged.unique()))}
+            item_map = {item: i for i, item in enumerate(np.sort(df['destination'].unique()))}
+            return merged, user_map, item_map
+
+        vec_merge = np.vectorize(merge_cols)
+        merged, user_map, item_map = vec_merge()
+
+        def map_func(a, b):
+            return user_map[a], item_map[b]
+
+        vec_func = np.vectorize(map_func)
+        df.loc[:, 'userid'], df.loc[:, 'itemid'] = vec_func(merged, df['destination'])
+        return df
+
+    def split_train_test(self):
+
+        total_df = self.map_userid()
+        train_by_destination = self.train_by_destination
+
+        # ignore warnings
+        np.warnings.filterwarnings('ignore')
+        df_18 = total_df.loc[total_df['year'] == 18]
+        df_19 = total_df.loc[total_df['year'] == 19]
+
+        if train_by_destination:
+            train_dataframe, test_dataframe, y_train, y_test = train_test_split(total_df, total_df['destination'],
+                                                                                test_size=0.3,
+                                                                                stratify=total_df['destination'],
+                                                                                random_state=42)
+        else:
+            train_dataframe = df_18
+            test_dataframe = df_19
+
+        print(f"len(total): {len(total_df)}, len(train): {len(train_dataframe)}, len(test): {len(test_dataframe)}")
+        return total_df, train_dataframe, test_dataframe,
 
 
 class TourDataset(Dataset):
