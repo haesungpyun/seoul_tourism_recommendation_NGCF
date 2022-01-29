@@ -118,7 +118,7 @@ class TourDataset(Dataset):
                 for k in range(ng_ratio):
                     # negative instance
                     negative_item = np.random.choice(tmp_negs)
-                    tmp_negs = np.delete(tmp_negs == negative_item)
+                    tmp_negs = np.delete(tmp_negs, np.where(tmp_negs == negative_item))
 
                     if self.train:
                         item.append(negative_item)
