@@ -8,8 +8,8 @@ import os
 from sklearn.model_selection import train_test_split
 
 
-def split_train_test(root_dir:str,
-                     train_by_destination:bool) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame):
+def split_train_test(root_dir: str,
+                     train_by_destination: bool) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame):
     '''
     pick each unique userid row, and add to the testset, delete from trainset.
     :return: (pd.DataFrame,pd.DataFrame,pd.DataFrame)
@@ -25,8 +25,10 @@ def split_train_test(root_dir:str,
     df2019 = total_df.loc[total_df['year'] == 19]
 
     if train_by_destination:
-        train_dataframe, test_dataframe, y_train, y_test = train_test_split(total_df, total_df['destination'], test_size=0.3,
-                                                              stratify=total_df['destination'], random_state=42)
+        train_dataframe, test_dataframe, y_train, y_test = train_test_split(total_df, total_df['destination'],
+                                                                            test_size=0.3,
+                                                                            stratify=total_df['destination'],
+                                                                            random_state=42)
     else:
         train_dataframe = df2018
         test_dataframe = df2019
@@ -50,7 +52,6 @@ class TourDataset(Dataset):
         print(f'len users:{self.users.shape}')
         print(f'len items:{self.items.shape}')
 
-
     def __len__(self) -> int:
         '''
         get lenght of data
@@ -69,9 +70,11 @@ class TourDataset(Dataset):
         # self.items[index][0]: positive feedback
         # self.items[index][1]: negative feedback
         if self.train:
-            return self.users[index][0],  self.users[index][1], self.users[index][2], self.users[index][3], self.users[index][4], self.items[index][0], self.items[index][1]
+            return self.users[index][0], self.users[index][1], self.users[index][2], self.users[index][3], \
+                   self.users[index][4], self.items[index][0], self.items[index][1]
         else:
-            return self.users[index][1], self.users[index][1], self.users[index][2], self.users[index][3], self.users[index][4], self.items[index]
+            return self.users[index][1], self.users[index][1], self.users[index][2], self.users[index][3], \
+                   self.users[index][4], self.items[index]
 
     def _negative_sampling(self):
         '''
@@ -92,20 +95,20 @@ class TourDataset(Dataset):
 
         for i in df['userid'].unique():
             tmp = df.loc[df['userid'].isin([i])]
-            med = tmp['congestion_1'].median()
+            med = tmp['congestion_1'].quantile(q=0.25)
             pos_item_set = zip(tmp['year'],
-                                tmp['userid'],
-                                tmp['age'],
-                                tmp['dayofweek'],
-                                tmp['sex'],
-                                tmp.loc[tmp['congestion_1'] >= med, 'itemid'])
+                               tmp['userid'],
+                               tmp['age'],
+                               tmp['dayofweek'],
+                               tmp['sex'],
+                               tmp.loc[tmp['congestion_1'] >= med, 'itemid'])
 
-            neg_items = list(set(all_destinations)-set(tmp.loc[tmp['congestion_1'] >= med, 'itemid']))
+            neg_items = np.setxor1d(all_destinations, tmp.loc[tmp['congestion_1'] >= med, 'itemid'])
 
             for year, uid, a, d, s, iid in pos_item_set:
-                tmp_negs = neg_items
+                tmp_negs = neg_items.copy()
                 # positive instance
-                item=[]
+                item = []
                 if not self.train:
                     items_list.append(iid)
                     users_list.append([year, uid, a, d, s])
@@ -114,8 +117,8 @@ class TourDataset(Dataset):
 
                 for k in range(ng_ratio):
                     # negative instance
-                    i = 0
-                    negative_item = tmp_negs.pop()
+                    negative_item = np.random.choice(tmp_negs)
+                    tmp_negs = np.delete(tmp_negs == negative_item)
 
                     if self.train:
                         item.append(negative_item)
@@ -128,4 +131,3 @@ class TourDataset(Dataset):
                     users_list.append([year, uid, a, d, s])
         print('Sampling ended!')
         return torch.LongTensor(users_list), torch.LongTensor(items_list)
-
