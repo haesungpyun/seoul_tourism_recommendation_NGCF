@@ -37,7 +37,7 @@ class Matrix(object):
             adj_mat[self.n_user:, :self.n_user] = R.T
 
             # L = D^-1/2 * A * D^-1/2
-            diag = np.count_nonzero(self.adj_mat, axis=1, keepdims=True)
+            diag = np.count_nonzero(adj_mat, axis=1, keepdims=True)
             d_sqrt = np.power(diag, -0.5, dtype=np.float32).squeeze()
             d_sqrt[np.isinf(d_sqrt)] = 0.
             d_mat_inv = sp.diags(d_sqrt)
