@@ -1,7 +1,4 @@
-import random
-
 import torch
-from pandas import Series
 from torch.utils.data import Dataset
 import pandas as pd
 import numpy as np
@@ -31,20 +28,21 @@ class Preprocess(object):
             df = self.df_raw.loc[self.df_raw['year'] != 20]
 
         def merge_cols():
-            merged = df['dayofweek'].apply('str') + df['age'].apply('str') + \
-                     df['sex'].apply('str') + df['month-day'].apply('str')
+            merged = pd.Series(df['dayofweek'].apply(str) + df['age'].apply(str) + \
+                               df['sex'].apply(str) + df['month-day'].apply(str))
             user_map = {item: i for i, item in enumerate(np.sort(merged.unique()))}
             item_map = {item: i for i, item in enumerate(np.sort(df['destination'].unique()))}
-            return merged, user_map, item_map
+            date_map = {item: i for i, item in enumerate(np.sort(df['month-day'].unique()))}
+            return merged, user_map, item_map, date_map
 
         vec_merge = np.vectorize(merge_cols)
-        merged, user_map, item_map = vec_merge()
+        merged, user_map, item_map, date_map = vec_merge()
 
-        def map_func(a, b):
-            return user_map[a], item_map[b]
+        def map_func(a, b, c):
+            return user_map[a], item_map[b], date_map[c]
 
         vec_func = np.vectorize(map_func)
-        df.loc[:, 'userid'], df.loc[:, 'itemid'] = vec_func(merged, df['destination'])
+        df.loc[:, 'userid'], df.loc[:, 'itemid'], df.loc[:, 'dateid'] = vec_func(merged, df['destination'], df['month-day'])
         return df
 
     def split_train_test(self):

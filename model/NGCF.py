@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 import scipy.sparse as sp
-from parsers import args
 
 
 class NGCF(nn.Module):
@@ -15,6 +14,7 @@ class NGCF(nn.Module):
                  mlp_ratio: float,
                  lap_list: list,
                  num_dict: dict,
+                 batch_size: int,
                  device):
         super(NGCF, self).__init__()
 
@@ -24,6 +24,7 @@ class NGCF(nn.Module):
         self.emb_size = embed_size
         self.weight_size = layer_size
         self.n_layer = len(self.weight_size)
+        self.batch_size = batch_size
 
         self.device = device
 
@@ -56,7 +57,7 @@ class NGCF(nn.Module):
         self.mess_dropout_list = []
 
         self.lap_list = lap_list
-        self.L = torch.tensor((args.batch_size, self.n_user + self.n_item, self.n_user + self.n_item))
+        self.L = torch.tensor((self.batch_size, self.n_user + self.n_item, self.n_user + self.n_item))
 
         self.set_layers()
 
@@ -129,7 +130,7 @@ class NGCF(nn.Module):
                 self.user_embedding.weight[u_id] * (1 - self.mlp_ratio) + user_mlp * self.mlp_ratio
 
         E = torch.cat((self.user_embedding.weight, self.item_embedding.weight), dim=0)
-        E = E.unsqueeze(0).expand(args.batch_size, *E.size())
+        E = E.unsqueeze(0).expand(self.batch_size, *E.size())
         all_E = [E]
 
         for i in range(self.n_layer):

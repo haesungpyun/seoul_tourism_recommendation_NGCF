@@ -38,7 +38,7 @@ class Train():
                                                                       age=age,
                                                                       day=day,
                                                                       sex=sex,
-                                                                      pos_items=pos_item,
+                                                                      pos_item=pos_item,
                                                                       neg_item=neg_item,
                                                                       node_flag=True)
                     self.optimizer.zero_grad()
@@ -95,8 +95,8 @@ class Test():
                                                        age=age,
                                                        day=day,
                                                        sex=sex,
-                                                       pos_items=pos_item,
-                                                       neg_items=torch.empty(0),
+                                                       pos_item=pos_item,
+                                                       neg_item=torch.empty(0),
                                                        node_flag=False)
 
                 pred_ratings = torch.mm(u_embeds, pos_i_embeds.T)

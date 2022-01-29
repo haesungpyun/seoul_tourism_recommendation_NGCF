@@ -16,13 +16,12 @@ print(f'device: {device}')
 root_path = '../data'
 total_df, train_df, test_df = Preprocess(root_dir=root_path, train_by_destination=False).split_train_test()
 
-
-num_dict = {'user': total_df['userid'].max()+1,
-            'item': total_df['itemid'].max()+1,
-            'day': total_df['dayofweek'].nunique(),
-            'sex': total_df['sex'].nunique(),
-            'age': total_df['age'].nunique(),
-            'date': total_df['month-day'].nunique()}
+num_dict = {'user': total_df['userid'].nunique(),
+            'item': total_df['itemid'].nunique(),
+            'day': total_df['dayofweek'].max()+1,
+            'sex': total_df['sex'].max()+1,
+            'age': total_df['age'].max()+1,
+            'date': total_df['month-day'].max()+1}
 
 train_dataset = TourDataset(df=train_df,
                             total_df=total_df,
@@ -55,6 +54,7 @@ model = NGCF(embed_size=args.embed_size,
              mlp_ratio=args.mlp_ratio,
              lap_list=lap_list,
              num_dict=num_dict,
+             batch_size=args.batch_size,
              device=device).to(device=device)
 
 if __name__ == '__main__':
