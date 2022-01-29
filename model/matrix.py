@@ -37,16 +37,20 @@ class Matrix(object):
             adj_mat[self.n_user:, :self.n_user] = R.T
 
             # L = D^-1/2 * A * D^-1/2
-            diag = np.array(self.adj_mat.sum(1))
+            diag = np.count_nonzero(self.adj_mat, axis=1, keepdims=True)
             d_sqrt = np.power(diag, -0.5, dtype=np.float32).squeeze()
             d_sqrt[np.isinf(d_sqrt)] = 0.
             d_mat_inv = sp.diags(d_sqrt)
             adj_mat = d_mat_inv.dot(self.adj_mat).dot(d_mat_inv)
 
             year_idx = year % 18
-            self.lap_list[year_idx] = torch.from_numpy(adj_mat.toarray()).to(self.device)
-            #self.lap_list[date] = self._convert_sp_mat_to_sp_tensor(adj_mat).to(self.device)
+            #self.lap_list[year_idx] = torch.from_numpy(adj_mat.toarray()).to(self.device)
+            self.lap_list[year_idx] = self._convert_sp_mat_to_sp_tensor(adj_mat).to(self.device)
         print('Laplacian Matrix Created!')
         return self.lap_list
 
-
+    def _convert_sp_mat_to_sp_tensor(self, matrix_sp):
+        coo = matrix_sp.tocoo()
+        idxs = torch.LongTensor(np.mat([coo.row, coo.col]))
+        vals = torch.from_numpy(coo.data.astype(np.float32))  # as_tensor보다 from_numpy가 빠름
+        return torch.sparse.FloatTensor(idxs, vals, coo.shape)
