@@ -42,7 +42,7 @@ class NGCF(nn.Module):
         self.user_embedding = nn.Embedding(self.n_user, self.emb_size)
 
         self.user_lin = []
-        self.lin_1 = nn.Linear(in_features=4, out_features=self.emb_size // 2, bias=True)
+        self.lin_1 = nn.Linear(in_features=self.emb_size, out_features=self.emb_size // 2, bias=True)
         self.lin_2 = nn.Linear(in_features=self.emb_size // 2, out_features=self.emb_size)
         self.user_lin.append(self.lin_1)
         self.user_lin.append(nn.LeakyReLU())
@@ -120,7 +120,9 @@ class NGCF(nn.Module):
         age = self.age_emb(age)
         date = self.date_emb(day)
         sex = self.sex_emb(sex)
-        feats = torch.cat((age, date, sex), dim=-1)
+        print('feats shapes ', age.shape, date.shape, sex.shape)
+        feats = torch.cat((age, date, sex), dim=0)
+        print('feat shape', feats.shape)
         user_mlp = self.user_lin(feats)
 
         L = self.lap_list[year].to(self.device)
