@@ -37,14 +37,14 @@ class Matrix(object):
             adj_mat[self.n_user:, :self.n_user] = R.T
 
             # L = D^-1/2 * A * D^-1/2
-            diag = np.count_nonzero(adj_mat, axis=1, keepdims=True)
+            diag = np.count_nonzero(adj_mat.toarray(), axis=1, keepdims=True)
             d_sqrt = np.power(diag, -0.5, dtype=np.float32).squeeze()
             d_sqrt[np.isinf(d_sqrt)] = 0.
             d_mat_inv = sp.diags(d_sqrt)
-            adj_mat = d_mat_inv.dot(self.adj_mat).dot(d_mat_inv)
+            adj_mat = d_mat_inv.dot(adj_mat.toarray()).dot(d_mat_inv)
 
             year_idx = year % 18
-            #self.lap_list[year_idx] = torch.from_numpy(adj_mat.toarray()).to(self.device)
+            #self.lap_list[year_idx] = torch.from_numpy(self.adj_mat).to(self.device)
             self.lap_list[year_idx] = self._convert_sp_mat_to_sp_tensor(adj_mat).to(self.device)
         print('Laplacian Matrix Created!')
         return self.lap_list
