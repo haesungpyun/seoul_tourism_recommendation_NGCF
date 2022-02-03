@@ -107,38 +107,21 @@ class NGCF(nn.Module):
 
 
     def forward(self, year, u_id, age, day, sex, pos_item, neg_item, node_flag):
-        age_emb = self.age_emb(age[0])
-        date_emb = self.date_emb(day[0])
-        sex_emb = self.sex_emb(sex[0])
+        age_emb = self.age_emb(age)
+        date_emb = self.date_emb(day)
+        sex_emb = self.sex_emb(sex)
         age_emb = torch.reshape(age_emb, (-1,))
         date_emb = torch.reshape(date_emb, (-1,))
         sex_emb = torch.reshape(sex_emb, (-1,))
-
         feats = torch.cat((age_emb, date_emb, sex_emb), dim=0)
         user_mlp = self.user_lin(feats)
-        
-        print('forward-----------------------')
-        print('year',year.shape, year)
-        print('u_id',u_id.shape, u_id)
-        print('age, day, sex')
-        print(age.shape, age)
-        print(day.shape, day)
-        print(sex.shape, sex)
-        print('feats',feats.shape, feats)
-        print('pos_item',pos_item.shape, pos_item)
-        print('neg_item',neg_item.shape, neg_item)
 
         year_idx = year.unique()[0] % 18
         L = self.lap_list[year_idx].to(self.device)
-        
-        print('year_idx', year_idx)
-        print('forward L' , L)
-        print('forward L shape', L.shape)
-        
-        print('weight shape embed, mlp ', self.user_embedding.weight[u_id].shape, user_mlp.shape) 
-                
-        self.user_embedding.weight[u_id[0]] =\
-            self.user_embedding.weight[u_id[0]] * (1 - self.mlp_ratio) + user_mlp * self.mlp_ratio
+
+        with torch.no_grad():
+            self.user_embedding.weight[u_id[0]] = \
+                self.user_embedding.weight[u_id[0]] * (1 - self.mlp_ratio) + user_mlp * self.mlp_ratio
 
         E = torch.cat((self.user_embedding.weight, self.item_embedding.weight), dim=0)
         all_E = [E]
@@ -176,6 +159,5 @@ class NGCF(nn.Module):
         neg_i_embeddings = torch.empty(0)
         if len(neg_item) > 0:
             neg_i_embeddings = self.all_items_emb[:, neg_item, :]
-
         print('forward ended')
         return u_embeddings, pos_i_embeddings, neg_i_embeddings

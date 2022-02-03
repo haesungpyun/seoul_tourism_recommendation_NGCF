@@ -60,7 +60,7 @@ model = NGCF(embed_size=64,
              num_dict=num_dict,
              batch_size=args.batch_size,
              device=device).to(device=device)
-model = nn.DataParallel(model)
+
 
 if __name__ == '__main__':
 
