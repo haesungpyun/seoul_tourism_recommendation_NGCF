@@ -46,7 +46,6 @@ class Preprocess(object):
         return df
 
     def split_train_test(self):
-
         total_df = self.map_userid()
         train_by_destination = self.train_by_destination
 

@@ -1,6 +1,7 @@
 import torch
 from torch.utils.data import DataLoader
 import torch.optim as optim
+import torch.nn as nn
 from utils import TourDataset
 from utils import Preprocess
 from matrix import Matrix
@@ -12,6 +13,9 @@ from parsers import args
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f'device: {device}')
+print('Current cuda device:', torch.cuda.current_device())
+print('Count of using GPUs:', torch.cuda.device_count())
+
 
 root_path = '../data'
 total_df, train_df, test_df = Preprocess(root_dir=root_path, train_by_destination=False).split_train_test()
@@ -47,15 +51,16 @@ matrix_generator = Matrix(total_df=total_df,
                         device=device)
 lap_list = matrix_generator.create_matrix()
 
-model = NGCF(embed_size=args.embed_size,
+model = NGCF(embed_size=64,
              layer_size=[64, 64, 64],
-             node_dropout=args.node_dropout,
-             mess_dropout=args.mess_dropout,
-             mlp_ratio=args.mlp_ratio,
+             node_dropout=0.2,
+             mess_dropout=[0.1,0.1,0.1],
+             mlp_ratio=0.5,
              lap_list=lap_list,
              num_dict=num_dict,
              batch_size=args.batch_size,
              device=device).to(device=device)
+model = nn.DataParallel(model)
 
 if __name__ == '__main__':
 

@@ -3,7 +3,6 @@ import torch
 import torch.nn as nn
 import os
 import numpy as np
-from parsers import args
 
 
 class Train():
@@ -24,14 +23,26 @@ class Train():
         self.device = device
 
     def train(self):
+        print('------------------------- Train -------------------------' )
+
 
         with torch.autograd.set_detect_anomaly(True):
             for epoch in range(self.epochs):
                 total_loss = 0
+                i = 0
                 for year, u_id, age, day, sex, pos_item, neg_item in self.train_dataloader:
+                    i += 1
                     year, u_id = year.to(self.device), u_id.to(self.device)
                     age, day, sex = age.to(self.device), day.to(self.device), sex.to(self.device)
                     pos_item, neg_item = pos_item.to(self.device), neg_item.to(self.device)
+
+                    print(f'------------batch:{i}-----------')
+                    print(year[0])
+                    print('year', year)
+                    print('u_id', u_id)
+                    print('age, day, sex', age, day, sex)
+                    print('pos item', pos_item)
+                    print('neg_item', neg_item)
 
                     u_embeds, pos_i_embeds, neg_i_embeds = self.model(year=year,
                                                                       u_id=u_id,
@@ -102,15 +113,22 @@ class Test():
                 pred_ratings = torch.mm(u_embeds, pos_i_embeds.T)
                 _, pred_rank = torch.topk(pred_ratings[0], self.ks)
 
+                print('pre_ratings', pred_ratings)
+                print('pred_rank', pred_rank)
+
                 recommends = torch.take(
                     pos_item, pred_rank).cpu().numpy().tolist()
 
+                print('rec', recommends)
+                print('pos_item', pos_item)
+
                 gt_rank = pos_item[0].item()
+
+                print('gt_rank', gt_rank)
 
                 HR.append(self.hit(gt_item=gt_rank, pred_items=recommends))
                 NDCG.append(self.Ndcg(gt_item=gt_rank, pred_items=recommends))
                 print('HR:{}, NDCG:{}'.format((HR), (NDCG)))
-                break
+
 
         print('HR:{}, NDCG:{}'.format(np.mean(HR), np.mean(NDCG)))
-

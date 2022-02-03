@@ -42,7 +42,7 @@ class NGCF(nn.Module):
         self.user_embedding = nn.Embedding(self.n_user, self.emb_size)
 
         self.user_lin = []
-        self.lin_1 = nn.Linear(in_features=self.emb_size, out_features=self.emb_size // 2, bias=True)
+        self.lin_1 = nn.Linear(in_features=self.emb_size*3, out_features=self.emb_size // 2, bias=True)
         self.lin_2 = nn.Linear(in_features=self.emb_size // 2, out_features=self.emb_size)
         self.user_lin.append(self.lin_1)
         self.user_lin.append(nn.LeakyReLU())
@@ -50,14 +50,12 @@ class NGCF(nn.Module):
         self.user_lin.append(nn.LeakyReLU())
         self.user_lin = nn.Sequential(*self.user_lin)
 
-
         self.w1_list = []
         self.w2_list = []
         self.node_dropout_list = []
         self.mess_dropout_list = []
 
         self.lap_list = lap_list
-        self.L = torch.tensor((self.batch_size, self.n_user + self.n_item, self.n_user + self.n_item))
 
         self.set_layers()
 
@@ -97,52 +95,62 @@ class NGCF(nn.Module):
         self.node_dropout_list = nn.Sequential(*self.node_dropout_list)
         self.mess_dropout_list = nn.Sequential(*self.mess_dropout_list)
 
-    def sparse_dropout(self, L, dateid):
-        lap = torch.FloatTensor(torch.empty(*L.size())).to(self.device)
-        for i in dateid:
-            mat = sp.dok_matrix(L[i].cpu().detach().numpy())
-            mat = self._convert_sp_mat_to_sp_tensor(mat)
-            node_mask = nn.Dropout(self.node_dropout)(torch.tensor(np.ones(mat._nnz()))).type(torch.bool)
-            i = mat._indices()
-            v = mat._values()
-            i = i[:, node_mask]
-            v = v[node_mask]
-            lap[i] = torch.sparse.FloatTensor(i, v, mat.shape).to_dense().to(self.device)
-        return lap
+    def sparse_dropout(self, mat):
+        node_mask = nn.Dropout(self.node_dropout)(torch.tensor(np.ones(mat._nnz()))).type(torch.bool)
+        i = L._indices()
+        v = L._values()
+        i = i[:, node_mask]
+        v = v[node_mask]
 
-    def _convert_sp_mat_to_sp_tensor(self, matrix_sp):
-        coo = matrix_sp.tocoo()
-        idxs = torch.LongTensor(np.mat([coo.row, coo.col]))
-        vals = torch.from_numpy(coo.data.astype(np.float32))  # as_tensor보다 from_numpy가 빠름
-        return torch.sparse.FloatTensor(idxs, vals, coo.shape)
+        drop = torch.sparse.FloatTensor(i, v, mat.shape).to(self.device)
+        return drop
+
 
     def forward(self, year, u_id, age, day, sex, pos_item, neg_item, node_flag):
-        age = self.age_emb(age)
-        date = self.date_emb(day)
-        sex = self.sex_emb(sex)
-        print('feats shapes ', age.shape, date.shape, sex.shape)
-        feats = torch.cat((age, date, sex), dim=0)
-        print('feat shape', feats.shape)
+        age_emb = self.age_emb(age[0])
+        date_emb = self.date_emb(day[0])
+        sex_emb = self.sex_emb(sex[0])
+        age_emb = torch.reshape(age_emb, (-1,))
+        date_emb = torch.reshape(date_emb, (-1,))
+        sex_emb = torch.reshape(sex_emb, (-1,))
+
+        feats = torch.cat((age_emb, date_emb, sex_emb), dim=0)
         user_mlp = self.user_lin(feats)
+        
+        print('forward-----------------------')
+        print('year',year.shape, year)
+        print('u_id',u_id.shape, u_id)
+        print('age, day, sex')
+        print(age.shape, age)
+        print(day.shape, day)
+        print(sex.shape, sex)
+        print('feats',feats.shape, feats)
+        print('pos_item',pos_item.shape, pos_item)
+        print('neg_item',neg_item.shape, neg_item)
 
-        L = self.lap_list[year].to(self.device)
-
-        with torch.no_grad():
-            self.user_embedding.weight[u_id] = \
-                self.user_embedding.weight[u_id] * (1 - self.mlp_ratio) + user_mlp * self.mlp_ratio
+        year_idx = year.unique()[0] % 18
+        L = self.lap_list[year_idx].to(self.device)
+        
+        print('year_idx', year_idx)
+        print('forward L' , L)
+        print('forward L shape', L.shape)
+        
+        print('weight shape embed, mlp ', self.user_embedding.weight[u_id].shape, user_mlp.shape) 
+                
+        self.user_embedding.weight[u_id[0]] =\
+            self.user_embedding.weight[u_id[0]] * (1 - self.mlp_ratio) + user_mlp * self.mlp_ratio
 
         E = torch.cat((self.user_embedding.weight, self.item_embedding.weight), dim=0)
-        E = E.unsqueeze(0).expand(self.batch_size, *E.size())
         all_E = [E]
 
         for i in range(self.n_layer):
             if node_flag:
                 # node dropout laplacian matrix
-                L = self.sparse_dropout(L, year)
+                L = self.sparse_dropout(L)
             else:
                 L = L
 
-            L_E = torch.bmm(L, E)
+            L_E = torch.mm(L, E)
             L_E_W1 = self.w1_list[i](L_E)
 
             E_W1 = self.w1_list[i](E)
@@ -168,5 +176,6 @@ class NGCF(nn.Module):
         neg_i_embeddings = torch.empty(0)
         if len(neg_item) > 0:
             neg_i_embeddings = self.all_items_emb[:, neg_item, :]
-        return u_embeddings, pos_i_embeddings, neg_i_embeddings
 
+        print('forward ended')
+        return u_embeddings, pos_i_embeddings, neg_i_embeddings
