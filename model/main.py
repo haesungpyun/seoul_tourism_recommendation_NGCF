@@ -1,6 +1,7 @@
 import torch
 from torch.utils.data import DataLoader
 import torch.optim as optim
+import torch.nn as nn
 from utils import TourDataset
 from utils import Preprocess
 from matrix import Matrix
@@ -45,7 +46,8 @@ matrix_generator = Matrix(total_df=total_df,
                         cols=['year', 'userid', 'itemid', 'congestion_1'],
                         num_dict=num_dict,
                         device=device)
-lap_list = matrix_generator.create_matrix()
+matrix_generator = nn.DataParallel(matrix_generator)
+lap_list = matrix_generator.create_matrix().to(device)
 
 model = NGCF(embed_size=64,
              layer_size=[64, 64, 64],
@@ -56,6 +58,7 @@ model = NGCF(embed_size=64,
              num_dict=num_dict,
              batch_size=args.batch_size,
              device=device).to(device=device)
+model = nn.DataParallel(model)
 
 if __name__ == '__main__':
 

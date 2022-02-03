@@ -2,9 +2,10 @@ import pandas as pd
 import torch
 import scipy.sparse as sp
 import numpy as np
+import torch.nn as nn
 
 
-class Matrix(object):
+class Matrix(nn.Module):
     """
     Manage all operations according to Matrix creation
     """
@@ -13,6 +14,7 @@ class Matrix(object):
                  cols: list,
                  num_dict: dict,
                  device):
+        super(Matrix, self).__init__()
         self.df = total_df[cols]
         self.device = device
         self.n_user = num_dict['user']
