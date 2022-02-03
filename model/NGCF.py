@@ -97,8 +97,8 @@ class NGCF(nn.Module):
 
     def sparse_dropout(self, mat):
         node_mask = nn.Dropout(self.node_dropout)(torch.tensor(np.ones(mat._nnz()))).type(torch.bool)
-        i = L._indices()
-        v = L._values()
+        i = mat._indices()
+        v = mat._values()
         i = i[:, node_mask]
         v = v[node_mask]
 
