@@ -22,14 +22,14 @@ class Matrix(nn.Module):
 
         self.R = sp.dok_matrix((self.n_user, self.n_item), dtype=np.float32)
         self.adj_mat = sp.dok_matrix((self.n_user + self.n_item, self.n_user + self.n_item), dtype=np.float32)
-        self.lap_list = torch.empty((total_df['year'].nunique(), self.n_user + self.n_item, self.n_user + self.n_item))
-        print('lap_list', self.lap_list.shape)
+        self.lap_list = []
+        for i in self.df['year'].unique():
+            self.lap_list.append([])
 
     def create_matrix(self):
         for year in self.df['year'].unique():
             df_tmp = self.df[self.df['year'].isin([year])]
             print(self.R.shape)
-            print(df_tmp['userid'].max(), df_tmp['itemid'].max())
             self.R[df_tmp['userid'], df_tmp['itemid']] = df_tmp['congestion_1']
 
             # A = [[0, R],[R.T,0]]
@@ -42,11 +42,12 @@ class Matrix(nn.Module):
             diag = np.count_nonzero(adj_mat.toarray(), axis=1, keepdims=True)
             d_sqrt = np.power(diag, -0.5, dtype=np.float32).squeeze()
             d_sqrt[np.isinf(d_sqrt)] = 0.
-            d_mat_inv = sp.diags(d_sqrt)
-            adj_mat = d_mat_inv.dot(adj_mat.toarray()).dot(d_mat_inv)
+            d_mat_inv = np.zeros(adj_mat.shape)
+            np.fill_diagonal(d_mat_inv,d_sqrt)
+            adj_mat = np.linalg.multi_dot([d_mat_inv, adj_mat, d_mat_inv])
 
             year_idx = year % 18
-            self.lap_list[year_idx] = torch.from_numpy(adj_mat.toarray()).to(self.device)
+            self.lap_list[year_idx] = torch.from_numpy(adj_mat).to(self.device)
             # self.lap_list[year_idx] = self._convert_sp_mat_to_sp_tensor(adj_mat).to(self.device)
         print('Laplacian Matrix Created!')
         return self.lap_list
