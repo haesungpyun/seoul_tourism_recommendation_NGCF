@@ -47,11 +47,11 @@ matrix_generator = Matrix(total_df=total_df,
                         device=device)
 lap_list = matrix_generator.create_matrix()
 
-model = NGCF(embed_size=args.embed_size,
+model = NGCF(embed_size=64,
              layer_size=[64, 64, 64],
-             node_dropout=args.node_dropout,
-             mess_dropout=args.mess_dropout,
-             mlp_ratio=args.mlp_ratio,
+             node_dropout=0.2,
+             mess_dropout=[0.1,0.1,0.1],
+             mlp_ratio=0.5,
              lap_list=lap_list,
              num_dict=num_dict,
              batch_size=args.batch_size,

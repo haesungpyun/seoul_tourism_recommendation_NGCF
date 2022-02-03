@@ -8,11 +8,11 @@ class Matrix(object):
     """
     Manage all operations according to Matrix creation
     """
-    def __init__(self, total_df:pd.DataFrame,
-                 cols: list,
-                 num_dict:dict,
-                 device):
 
+    def __init__(self, total_df: pd.DataFrame,
+                 cols: list,
+                 num_dict: dict,
+                 device):
         self.df = total_df[cols]
         self.device = device
         self.n_user = num_dict['user']
@@ -20,14 +20,14 @@ class Matrix(object):
 
         self.R = sp.dok_matrix((self.n_user, self.n_item), dtype=np.float32)
         self.adj_mat = sp.dok_matrix((self.n_user + self.n_item, self.n_user + self.n_item), dtype=np.float32)
-        self.lap_list = torch.empty((total_df['year'].nunique(), self.n_user+self.n_item, self.n_user+self.n_item))
+        self.lap_list = torch.empty((total_df['year'].nunique(), self.n_user + self.n_item, self.n_user + self.n_item))
+        print('lap_list', self.lap_list.shape)
 
     def create_matrix(self):
         for year in self.df['year'].unique():
             df_tmp = self.df[self.df['year'].isin([year])]
             print(self.R.shape)
-            print(df_tmp['userid'].max())
-            print(df_tmp['itemid'].max())
+            print(df_tmp['userid'].max(), df_tmp['itemid'].max())
             self.R[df_tmp['userid'], df_tmp['itemid']] = df_tmp['congestion_1']
 
             # A = [[0, R],[R.T,0]]
@@ -44,8 +44,8 @@ class Matrix(object):
             adj_mat = d_mat_inv.dot(adj_mat.toarray()).dot(d_mat_inv)
 
             year_idx = year % 18
-            #self.lap_list[year_idx] = torch.from_numpy(self.adj_mat).to(self.device)
-            self.lap_list[year_idx] = self._convert_sp_mat_to_sp_tensor(adj_mat).to(self.device)
+            self.lap_list[year_idx] = torch.from_numpy(adj_mat.toarray()).to(self.device)
+            # self.lap_list[year_idx] = self._convert_sp_mat_to_sp_tensor(adj_mat).to(self.device)
         print('Laplacian Matrix Created!')
         return self.lap_list
 

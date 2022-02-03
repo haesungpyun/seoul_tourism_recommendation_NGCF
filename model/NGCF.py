@@ -57,7 +57,6 @@ class NGCF(nn.Module):
         self.mess_dropout_list = []
 
         self.lap_list = lap_list
-        self.L = torch.tensor((self.batch_size, self.n_user + self.n_item, self.n_user + self.n_item))
 
         self.set_layers()
 
@@ -120,19 +119,17 @@ class NGCF(nn.Module):
         age = self.age_emb(age)
         date = self.date_emb(day)
         sex = self.sex_emb(sex)
-        print('feats shapes ', age.shape, date.shape, sex.shape)
         feats = torch.cat((age, date, sex), dim=0)
-        print('feat shape', feats.shape)
         user_mlp = self.user_lin(feats)
 
-        L = self.lap_list[year].to(self.device)
+        year_idx = year.unique()[0] % 18
+        L = self.lap_list[year_idx].to(self.device)
 
         with torch.no_grad():
             self.user_embedding.weight[u_id] = \
                 self.user_embedding.weight[u_id] * (1 - self.mlp_ratio) + user_mlp * self.mlp_ratio
 
         E = torch.cat((self.user_embedding.weight, self.item_embedding.weight), dim=0)
-        E = E.unsqueeze(0).expand(self.batch_size, *E.size())
         all_E = [E]
 
         for i in range(self.n_layer):
@@ -142,7 +139,7 @@ class NGCF(nn.Module):
             else:
                 L = L
 
-            L_E = torch.bmm(L, E)
+            L_E = torch.mm(L, E)
             L_E_W1 = self.w1_list[i](L_E)
 
             E_W1 = self.w1_list[i](E)
@@ -169,4 +166,3 @@ class NGCF(nn.Module):
         if len(neg_item) > 0:
             neg_i_embeddings = self.all_items_emb[:, neg_item, :]
         return u_embeddings, pos_i_embeddings, neg_i_embeddings
-
