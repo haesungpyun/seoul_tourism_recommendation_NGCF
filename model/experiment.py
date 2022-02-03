@@ -32,12 +32,6 @@ class Train():
                     age, day, sex = age.to(self.device), day.to(self.device), sex.to(self.device)
                     pos_item, neg_item = pos_item.to(self.device), neg_item.to(self.device)
 
-                    print(
-                        'Train------------------------------------'
-                    )
-                    print(year[0])
-                    print(year, u_id, age, day, sex, pos_item, neg_item)
-
                     u_embeds, pos_i_embeds, neg_i_embeds = self.model(year=year,
                                                                       u_id=u_id,
                                                                       age=age,

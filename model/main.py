@@ -46,7 +46,7 @@ matrix_generator = Matrix(total_df=total_df,
                         cols=['year', 'userid', 'itemid', 'congestion_1'],
                         num_dict=num_dict,
                         device=device)
-lap_list = nn.DataParallel(matrix_generator.create_matrix())
+lap_list = matrix_generator.create_matrix()
 
 model = NGCF(embed_size=64,
              layer_size=[64, 64, 64],

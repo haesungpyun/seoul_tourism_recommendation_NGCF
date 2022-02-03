@@ -42,7 +42,7 @@ class NGCF(nn.Module):
         self.user_embedding = nn.Embedding(self.n_user, self.emb_size)
 
         self.user_lin = []
-        self.lin_1 = nn.Linear(in_features=self.emb_size, out_features=self.emb_size // 2, bias=True)
+        self.lin_1 = nn.Linear(in_features=self.emb_size*3, out_features=self.emb_size // 2, bias=True)
         self.lin_2 = nn.Linear(in_features=self.emb_size // 2, out_features=self.emb_size)
         self.user_lin.append(self.lin_1)
         self.user_lin.append(nn.LeakyReLU())
@@ -116,18 +116,21 @@ class NGCF(nn.Module):
         return torch.sparse.FloatTensor(idxs, vals, coo.shape)
 
     def forward(self, year, u_id, age, day, sex, pos_item, neg_item, node_flag):
-        age = self.age_emb(age)
-        date = self.date_emb(day)
-        sex = self.sex_emb(sex)
-        feats = torch.cat((age, date, sex), dim=0)
+        age_emb = self.age_emb(age)
+        date_emb = self.date_emb(day)
+        sex_emb = self.sex_emb(sex)
+        age_emb = torch.reshape(age_emb, (-1,))
+        date_emb = torch.reshape(date_emb, (-1,))
+        sex_emb = torch.reshape(sex_emb, (-1,))
+        feats = torch.cat((age_emb, date_emb, sex_emb), dim=0)
         user_mlp = self.user_lin(feats)
 
         year_idx = year.unique()[0] % 18
         L = self.lap_list[year_idx].to(self.device)
 
         with torch.no_grad():
-            self.user_embedding.weight[u_id] = \
-                self.user_embedding.weight[u_id] * (1 - self.mlp_ratio) + user_mlp * self.mlp_ratio
+            self.user_embedding.weight[u_id[0]] = \
+                self.user_embedding.weight[u_id[0]] * (1 - self.mlp_ratio) + user_mlp * self.mlp_ratio
 
         E = torch.cat((self.user_embedding.weight, self.item_embedding.weight), dim=0)
         all_E = [E]

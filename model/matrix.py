@@ -29,7 +29,6 @@ class Matrix(nn.Module):
     def create_matrix(self):
         for year in self.df['year'].unique():
             df_tmp = self.df[self.df['year'].isin([year])]
-            print(self.R.shape)
             self.R[df_tmp['userid'], df_tmp['itemid']] = df_tmp['congestion_1']
 
             # A = [[0, R],[R.T,0]]
@@ -43,12 +42,12 @@ class Matrix(nn.Module):
             d_sqrt = np.power(diag, -0.5, dtype=np.float32).squeeze()
             d_sqrt[np.isinf(d_sqrt)] = 0.
             d_mat_inv = np.zeros(adj_mat.shape)
-            np.fill_diagonal(d_mat_inv,d_sqrt)
-            adj_mat = np.linalg.multi_dot([d_mat_inv, adj_mat, d_mat_inv])
+            np.fill_diagonal(d_mat_inv, d_sqrt)
+            adj_mat = np.linalg.multi_dot([d_mat_inv, adj_mat.toarray(), d_mat_inv])
 
             year_idx = year % 18
-            self.lap_list[year_idx] = torch.from_numpy(adj_mat).to(self.device)
-            # self.lap_list[year_idx] = self._convert_sp_mat_to_sp_tensor(adj_mat).to(self.device)
+            #self.lap_list[year_idx] = torch.from_numpy(adj_mat).to(self.device)
+            self.lap_list[year_idx] = self._convert_sp_mat_to_sp_tensor(adj_mat).to(self.device)
         print('Laplacian Matrix Created!')
         return self.lap_list
 
