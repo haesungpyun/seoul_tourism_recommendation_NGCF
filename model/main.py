@@ -27,9 +27,6 @@ num_dict = {'user': total_df['userid'].nunique(),
             'age': total_df['age'].max() + 1,
             'date': total_df['month-day'].max() + 1}
 
-test_dataset = TourDataset(df=test_df,
-                           total_df=total_df,
-                           train=False)
 
 train_dataset = TourDataset(df=train_df,
                             total_df=total_df,
@@ -40,7 +37,9 @@ train_loader = DataLoader(dataset=train_dataset,
                           shuffle=False,
                           drop_last=True)
 
-
+test_dataset = TourDataset(df=test_df,
+                           total_df=total_df,
+                           train=False)
 
 test_loader = DataLoader(dataset=test_dataset,
                          batch_size=args.test_batch,
