@@ -5,9 +5,10 @@ import numpy as np
 import os
 from sklearn.model_selection import train_test_split
 
+
 class Preprocess(object):
     def __init__(self, root_dir: str,
-                         train_by_destination: bool) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame):
+                 train_by_destination: bool) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame):
 
         self.root_dir = root_dir
         self.train_by_destination = train_by_destination
@@ -42,7 +43,8 @@ class Preprocess(object):
             return user_map[a], item_map[b], date_map[c]
 
         vec_func = np.vectorize(map_func)
-        df.loc[:, 'userid'], df.loc[:, 'itemid'], df.loc[:, 'dateid'] = vec_func(merged, df['destination'], df['month-day'])
+        df.loc[:, 'userid'], df.loc[:, 'itemid'], df.loc[:, 'dateid'] = vec_func(merged, df['destination'],
+                                                                                 df['month-day'])
         return df
 
     def split_train_test(self):
