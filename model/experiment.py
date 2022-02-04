@@ -46,14 +46,12 @@ class Train():
                     self.optimizer.step()
                     total_loss += loss
 
-                print('epoch {}'.format(epoch + 1))
-
                 test = Test(model=self.model,
                             dataloader=self.test_dataloader,
                             ks=args.ks,
                             device=self.device)
-                print('|epoch loss: {}|'.format((total_loss / len(self.train_dataloader))))
-                test.eval()
+                HR, NDCG = test.eval()
+                print(f'epoch {epoch + 1}, epoch loss: {total_loss/len(self.train_dataloader)}, HR:{HR}, NDCG:{NDCG}')
 
 
 class Test():
@@ -88,11 +86,6 @@ class Test():
             for year, u_id, age, day, sex, pos_item in self.dataloader:
                 year, u_id, pos_item = year.to(self.device), u_id.to(self.device), pos_item.to(self.device)
                 age, day, sex = age.to(self.device), day.to(self.device), sex.to(self.device)
-                print(
-                    'Test------------------------------------'
-                )
-                print(year[0])
-                print(year, u_id, age, day, sex, pos_item)
 
                 u_embeds, pos_i_embeds, _ = self.model(year=year,
                                                        u_id=u_id,
@@ -117,6 +110,4 @@ class Test():
                     pos_item, pred_rank).cpu().numpy().tolist()
                 gt_rank = pos_item[0].item()
                 NDCG.append(self.Ndcg(gt_item=gt_rank, pred_items=recommends))
-                print('HR:{}, NDCG:{}'.format((HR), (NDCG)))
-
-        print('HR:{}, NDCG:{}'.format(np.mean(HR), np.mean(NDCG)))
+        return np.mean(HR), np.mean(NDCG)
