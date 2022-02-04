@@ -13,6 +13,9 @@ from parsers import args
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f'device: {device}')
+print('Current cuda device:', torch.cuda.current_device())
+print('Count of using GPUs:', torch.cuda.device_count())
+
 
 root_path = '../data'
 total_df, train_df, test_df = Preprocess(root_dir=root_path, train_by_destination=False).split_train_test()
@@ -57,7 +60,7 @@ model = NGCF(embed_size=64,
              num_dict=num_dict,
              batch_size=args.batch_size,
              device=device).to(device=device)
-model = nn.DataParallel(model)
+
 
 if __name__ == '__main__':
 

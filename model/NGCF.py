@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-import scipy.sparse as sp
 
 
 class NGCF(nn.Module):
@@ -50,7 +49,6 @@ class NGCF(nn.Module):
         self.user_lin.append(nn.LeakyReLU())
         self.user_lin = nn.Sequential(*self.user_lin)
 
-
         self.w1_list = []
         self.w2_list = []
         self.node_dropout_list = []
@@ -96,29 +94,21 @@ class NGCF(nn.Module):
         self.node_dropout_list = nn.Sequential(*self.node_dropout_list)
         self.mess_dropout_list = nn.Sequential(*self.mess_dropout_list)
 
-    def sparse_dropout(self, L, dateid):
-        lap = torch.FloatTensor(torch.empty(*L.size())).to(self.device)
-        for i in dateid:
-            mat = sp.dok_matrix(L[i].cpu().detach().numpy())
-            mat = self._convert_sp_mat_to_sp_tensor(mat)
-            node_mask = nn.Dropout(self.node_dropout)(torch.tensor(np.ones(mat._nnz()))).type(torch.bool)
-            i = mat._indices()
-            v = mat._values()
-            i = i[:, node_mask]
-            v = v[node_mask]
-            lap[i] = torch.sparse.FloatTensor(i, v, mat.shape).to_dense().to(self.device)
-        return lap
+    def sparse_dropout(self, mat):
+        node_mask = nn.Dropout(self.node_dropout)(torch.tensor(np.ones(mat._nnz()))).type(torch.bool)
+        i = mat._indices()
+        v = mat._values()
+        i = i[:, node_mask]
+        v = v[node_mask]
 
-    def _convert_sp_mat_to_sp_tensor(self, matrix_sp):
-        coo = matrix_sp.tocoo()
-        idxs = torch.LongTensor(np.mat([coo.row, coo.col]))
-        vals = torch.from_numpy(coo.data.astype(np.float32))  # as_tensor보다 from_numpy가 빠름
-        return torch.sparse.FloatTensor(idxs, vals, coo.shape)
+        drop = torch.sparse.FloatTensor(i, v, mat.shape).to(self.device)
+        return drop
+
 
     def forward(self, year, u_id, age, day, sex, pos_item, neg_item, node_flag):
-        age_emb = self.age_emb(age)
-        date_emb = self.date_emb(day)
-        sex_emb = self.sex_emb(sex)
+        age_emb = self.age_emb(age[0])
+        date_emb = self.date_emb(day[0])
+        sex_emb = self.sex_emb(sex[0])
         age_emb = torch.reshape(age_emb, (-1,))
         date_emb = torch.reshape(date_emb, (-1,))
         sex_emb = torch.reshape(sex_emb, (-1,))
@@ -138,7 +128,7 @@ class NGCF(nn.Module):
         for i in range(self.n_layer):
             if node_flag:
                 # node dropout laplacian matrix
-                L = self.sparse_dropout(L, year)
+                L = self.sparse_dropout(L)
             else:
                 L = L
 
@@ -159,13 +149,14 @@ class NGCF(nn.Module):
             norm_embedding = F.normalize(E, p=2, dim=1)
 
             all_E += [norm_embedding]
-        all_E = torch.cat(all_E, dim=2)
-        self.all_users_emb = all_E[:, :self.n_user, :]
-        self.all_items_emb = all_E[:, self.n_user:, :]
+        all_E = torch.cat(all_E, dim=1)
+        self.all_users_emb = all_E[:self.n_user, :]
+        self.all_items_emb = all_E[self.n_user:, :]
 
-        u_embeddings = self.all_users_emb[:, u_id, :]
-        pos_i_embeddings = self.all_items_emb[:, pos_item, :]
+        u_embeddings = self.all_users_emb[u_id, :]
+        pos_i_embeddings = self.all_items_emb[pos_item, :]
         neg_i_embeddings = torch.empty(0)
         if len(neg_item) > 0:
-            neg_i_embeddings = self.all_items_emb[:, neg_item, :]
+            neg_i_embeddings = self.all_items_emb[neg_item, :]
+
         return u_embeddings, pos_i_embeddings, neg_i_embeddings

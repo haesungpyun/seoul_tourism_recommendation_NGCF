@@ -1,8 +1,8 @@
 from torch.utils.data import Dataset
 import torch
 import torch.nn as nn
-import os
 import numpy as np
+from parsers import args
 
 
 class Train():
@@ -23,11 +23,14 @@ class Train():
         self.device = device
 
     def train(self):
+        print('------------------------- Train -------------------------')
 
         with torch.autograd.set_detect_anomaly(True):
             for epoch in range(self.epochs):
                 total_loss = 0
+                i = 0
                 for year, u_id, age, day, sex, pos_item, neg_item in self.train_dataloader:
+                    i += 1
                     year, u_id = year.to(self.device), u_id.to(self.device)
                     age, day, sex = age.to(self.device), day.to(self.device), sex.to(self.device)
                     pos_item, neg_item = pos_item.to(self.device), neg_item.to(self.device)
@@ -117,6 +120,5 @@ class Test():
                 HR.append(self.hit(gt_item=gt_rank, pred_items=recommends))
                 NDCG.append(self.Ndcg(gt_item=gt_rank, pred_items=recommends))
                 print('HR:{}, NDCG:{}'.format((HR), (NDCG)))
-
 
         print('HR:{}, NDCG:{}'.format(np.mean(HR), np.mean(NDCG)))
