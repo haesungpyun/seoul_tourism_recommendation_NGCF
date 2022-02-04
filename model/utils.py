@@ -127,15 +127,15 @@ class TourDataset(Dataset):
 
         for i in df['userid'].unique():
             tmp = df.loc[df['userid'].isin([i])]
-            med = tmp['congestion_1'].quantile(q=0.25)
+            quarter = tmp['congestion_1'].quantile(q=0.25)
             pos_item_set = zip(tmp['year'],
                                tmp['userid'],
                                tmp['age'],
                                tmp['dayofweek'],
                                tmp['sex'],
-                               tmp.loc[tmp['congestion_1'] >= med, 'itemid'])
+                               tmp.loc[tmp['congestion_1'] >= quarter, 'itemid'])
 
-            neg_items = np.setxor1d(all_destinations, tmp.loc[tmp['congestion_1'] >= med, 'itemid'])
+            neg_items = np.setxor1d(all_destinations, tmp.loc[tmp['congestion_1'] >= quarter, 'itemid'])
 
             for year, uid, a, d, s, iid in pos_item_set:
                 tmp_negs = neg_items.copy()

@@ -103,23 +103,19 @@ class Test():
                                                        neg_item=torch.empty(0),
                                                        node_flag=False)
 
+                all_u_emb, all_i_emb = self.model.all_users_emb, self.model.all_items_emb
+                all_pred_ratings = torch.mm(all_u_emb[0], all_i_emb.T)
+                _, all_rank = torch.topk(all_pred_ratings[0], self.ks)
+                all_rec = torch.take(
+                    pos_item, pred_rank).cpu().numpy().tolist()
+                gt_pos = pos_item[0].item()
+                HR.append(self.hit(gt_item=gt_pos, pred_items=all_rec))
+
                 pred_ratings = torch.mm(u_embeds, pos_i_embeds.T)
                 _, pred_rank = torch.topk(pred_ratings[0], self.ks)
-
-                print('pre_ratings', pred_ratings)
-                print('pred_rank', pred_rank)
-
                 recommends = torch.take(
                     pos_item, pred_rank).cpu().numpy().tolist()
-
-                print('rec', recommends)
-                print('pos_item', pos_item)
-
                 gt_rank = pos_item[0].item()
-
-                print('gt_rank', gt_rank)
-
-                HR.append(self.hit(gt_item=gt_rank, pred_items=recommends))
                 NDCG.append(self.Ndcg(gt_item=gt_rank, pred_items=recommends))
                 print('HR:{}, NDCG:{}'.format((HR), (NDCG)))
 
