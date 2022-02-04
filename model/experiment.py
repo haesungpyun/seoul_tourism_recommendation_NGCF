@@ -2,7 +2,6 @@ from torch.utils.data import Dataset
 import torch
 import torch.nn as nn
 import numpy as np
-from parsers import args
 
 
 class Experiment():
