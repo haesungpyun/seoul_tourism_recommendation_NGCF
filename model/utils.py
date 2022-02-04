@@ -4,8 +4,7 @@ import pandas as pd
 import numpy as np
 import os
 from sklearn.model_selection import train_test_split
-import warnings
-warnings.filterwarnings('ignore')
+
 
 class Preprocess(object):
     def __init__(self, root_dir: str,
@@ -16,7 +15,6 @@ class Preprocess(object):
         self.df_raw = self.load_data()
         self.user_dict = None
         self.item_dict = None
-        warnings.filterwarnings('ignore')
 
     def load_data(self):
         root_dir = self.root_dir
@@ -33,8 +31,8 @@ class Preprocess(object):
             df = self.df_raw.loc[self.df_raw['year'] != 20]
 
         def merge_cols():
-            merged = pd.Series(df['month-day'].apply(str)+df['dayofweek'].apply(str) +\
-                               df['sex'].apply(str) + df['age'].apply(str))
+            merged = pd.Series(df['dayofweek'].apply(str) + df['age'].apply(str) + \
+                               df['sex'].apply(str) + df['month-day'].apply(str))
             user_map = {item: i for i, item in enumerate(np.sort(merged.unique()))}
             item_map = {item: i for i, item in enumerate(np.sort(df['destination'].unique()))}
             date_map = {item: i for i, item in enumerate(np.sort(df['month-day'].unique()))}
@@ -47,9 +45,8 @@ class Preprocess(object):
             return user_map[a], item_map[b], date_map[c]
 
         vec_func = np.vectorize(map_func)
-        df.loc[:, 'userid'], df.loc[:, 'itemid'], df.loc[:, 'dateid'] =\
-            vec_func(merged, df['destination'],df['month-day'])
-
+        df.loc[:, 'userid'], df.loc[:, 'itemid'], df.loc[:, 'dateid'] = vec_func(merged, df['destination'],
+                                                                                 df['month-day'])
         self.user_dict = user_map
         self.item_dict = item_map
         return df
@@ -57,6 +54,9 @@ class Preprocess(object):
     def split_train_test(self):
         total_df = self.map_userid()
         train_by_destination = self.train_by_destination
+
+        # ignore warnings
+        np.warnings.filterwarnings('ignore')
         df_18 = total_df.loc[total_df['year'] == 18]
         df_19 = total_df.loc[total_df['year'] == 19]
 

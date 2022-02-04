@@ -10,12 +10,11 @@ from bprloss import BPR
 from experiment import Experiment
 from parsers import args
 
-
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f'device: {device}')
-print('Current cuda device:', torch.cuda.current_device())
-print('Count of using GPUs:', torch.cuda.device_count())
-
+if device == 'cuda':
+    print('Current cuda device:', torch.cuda.current_device())
+    print('Count of using GPUs:', torch.cuda.device_count())
 
 root_path = '../data'
 preprocess = Preprocess(root_dir=root_path, train_by_destination=False)
@@ -23,10 +22,14 @@ total_df, train_df, test_df = preprocess.split_train_test()
 
 num_dict = {'user': total_df['userid'].nunique(),
             'item': total_df['itemid'].nunique(),
-            'day': total_df['dayofweek'].max()+1,
-            'sex': total_df['sex'].max()+1,
-            'age': total_df['age'].max()+1,
-            'date': total_df['month-day'].max()+1}
+            'day': total_df['dayofweek'].max() + 1,
+            'sex': total_df['sex'].max() + 1,
+            'age': total_df['age'].max() + 1,
+            'date': total_df['month-day'].max() + 1}
+
+test_dataset = TourDataset(df=test_df,
+                           total_df=total_df,
+                           train=False)
 
 train_dataset = TourDataset(df=train_df,
                             total_df=total_df,
@@ -37,25 +40,23 @@ train_loader = DataLoader(dataset=train_dataset,
                           shuffle=False,
                           drop_last=True)
 
-test_dataset = TourDataset(df=train_df,
-                            total_df=total_df,
-                            train=False)
+
 
 test_loader = DataLoader(dataset=test_dataset,
-                          batch_size=args.test_batch,
-                          shuffle=False,
-                          drop_last=True)
+                         batch_size=args.test_batch,
+                         shuffle=False,
+                         drop_last=True)
 
 matrix_generator = Matrix(total_df=total_df,
-                        cols=['year', 'userid', 'itemid', 'congestion_1'],
-                        num_dict=num_dict,
-                        device=device)
+                          cols=['year', 'userid', 'itemid', 'congestion_1'],
+                          num_dict=num_dict,
+                          device=device)
 lap_list = matrix_generator.create_matrix()
 
 model = NGCF(embed_size=64,
              layer_size=[64, 64, 64],
              node_dropout=0.2,
-             mess_dropout=[0.1,0.1,0.1],
+             mess_dropout=[0.1, 0.1, 0.1],
              mlp_ratio=0.5,
              lap_list=lap_list,
              num_dict=num_dict,
@@ -66,12 +67,13 @@ optimizer = optim.Adam(model.parameters(), lr=args.lr)
 criterion = BPR(weight_decay=0.025, batch_size=args.batch_size)
 
 train = Experiment(model=model,
-              optimizer=optimizer,
-              criterion=criterion,
-              train_dataloader=train_loader,
-              test_dataloader=test_loader,
-              epochs=args.epoch,
-              device=device)
+                   optimizer=optimizer,
+                   criterion=criterion,
+                   train_dataloader=train_loader,
+                   test_dataloader=test_loader,
+                   epochs=args.epoch,
+                   ks=args.ks,
+                   device=device)
 train.train()
 print('train ended')
 
@@ -85,7 +87,6 @@ print('요일 : 월 / 화/ 수 / 목 / 금 / 토 / 일')
 print('성별 : 여 / 남')
 print('연령 : 5-9세이하 / 15-10~19 / 25-20~29 / 35-30~39 / 45-40~49 / 55-50~59 / 65-60~69 / 75-70세이상')
 print('---------------------------------------------------------------------------------------------')
-
 
 date = input("관광할 월-일을 입력하세요(ex 01 01):").split()
 day = input("관광할 요일을 입력하세요(ex 월):")
@@ -115,4 +116,3 @@ all_pred_ratings = torch.mm(all_u_emb, all_i_emb.T)
 _, all_rank = torch.topk(all_pred_ratings[0], 10)
 
 print(all_rank)
-
