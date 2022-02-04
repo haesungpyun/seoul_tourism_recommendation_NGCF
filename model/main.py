@@ -1,7 +1,7 @@
 import torch
 from torch.utils.data import DataLoader
 import torch.optim as optim
-import torch.nn as nn
+import os
 from utils import TourDataset
 from utils import Preprocess
 from matrix import Matrix
@@ -18,7 +18,8 @@ print('Count of using GPUs:', torch.cuda.device_count())
 
 
 root_path = '../data'
-total_df, train_df, test_df = Preprocess(root_dir=root_path, train_by_destination=False).split_train_test()
+preprocess = Preprocess(root_dir=root_path, train_by_destination=False)
+total_df, train_df, test_df = preprocess.split_train_test()
 
 num_dict = {'user': total_df['userid'].nunique(),
             'item': total_df['itemid'].nunique(),
@@ -73,4 +74,44 @@ train = Experiment(model=model,
               device=device)
 train.train()
 print('train ended')
+
+model_dir = os.path.join('./', 'NGCG.pth')
+torch.save(model, model_dir)
+
+print('---------------------------------------------------------------------------------------------')
+print('------------------------------------------HELP-----------------------------------------------')
+print('월일 : 01 01 ~ 12 31')
+print('요일 : 월 / 화/ 수 / 목 / 금 / 토 / 일')
+print('성별 : 여 / 남')
+print('연령 : 5-9세이하 / 15-10~19 / 25-20~29 / 35-30~39 / 45-40~49 / 55-50~59 / 65-60~69 / 75-70세이상')
+print('---------------------------------------------------------------------------------------------')
+
+date = input("관광할 월-일을 입력하세요(ex 01 01):").split()
+day = input("관광할 요일을 입력하세요(ex 월):")
+sex = input('관광객의 성별을 입력하세요(ex 남):')
+age = input('관광객의 연령을 입력하세요(ex 25):')
+
+week = ['월', '화', '수', '목', '금', '토', '일']
+gender = ['여', '남']
+date = date[0] + date[1]
+day = str(week.index(day))
+sex = str(gender.index(sex))
+
+u_id = date + day + sex + age
+
+_, _, _ = model(year=0,
+                u_id=u_id,
+                age=age,
+                day=day,
+                sex=sex,
+                pos_item=torch.empty(0),
+                neg_item=torch.empty(0),
+                node_flag=False)
+
+all_u_emb, all_i_emb = model.all_users_emb, model.all_items_emb
+all_u_emb = all_u_emb[u_id, :].unsqueeze(0)
+all_pred_ratings = torch.mm(all_u_emb, all_i_emb.T)
+_, all_rank = torch.topk(all_pred_ratings[0], 10)
+
+print(all_rank)
 

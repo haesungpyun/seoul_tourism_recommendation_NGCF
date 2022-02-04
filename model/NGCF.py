@@ -158,6 +158,5 @@ class NGCF(nn.Module):
         neg_i_embeddings = torch.empty(0)
         if len(neg_item) > 0:
             neg_i_embeddings = self.all_items_emb[neg_item, :]
-
         return u_embeddings, pos_i_embeddings, neg_i_embeddings
 
