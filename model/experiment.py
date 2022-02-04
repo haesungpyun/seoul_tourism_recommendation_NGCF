@@ -100,6 +100,7 @@ class Test():
                 all_pred_ratings = torch.mm(all_u_emb[0], all_i_emb.T)
                 _, all_rank = torch.topk(all_pred_ratings[0], self.ks)
                 all_rec = torch.take(pos_item, pred_rank).cpu().numpy().tolist()
+                #print('recommendations :', all_rec)
                 gt_pos = pos_item[0].item()
                 HR.append(self.hit(gt_item=gt_pos, pred_items=all_rec))
 
