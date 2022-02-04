@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import os
 import numpy as np
-
+from parsers import args
 
 class Train():
     def __init__(self,
@@ -35,15 +35,7 @@ class Train():
                     year, u_id = year.to(self.device), u_id.to(self.device)
                     age, day, sex = age.to(self.device), day.to(self.device), sex.to(self.device)
                     pos_item, neg_item = pos_item.to(self.device), neg_item.to(self.device)
-
-                    print(f'------------batch:{i}-----------')
-                    print(year[0])
-                    print('year', year)
-                    print('u_id', u_id)
-                    print('age, day, sex', age, day, sex)
-                    print('pos item', pos_item)
-                    print('neg_item', neg_item)
-
+                   
                     u_embeds, pos_i_embeds, neg_i_embeds = self.model(year=year,
                                                                       u_id=u_id,
                                                                       age=age,
