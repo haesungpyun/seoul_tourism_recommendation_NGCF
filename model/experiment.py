@@ -4,6 +4,7 @@ import torch.nn as nn
 import numpy as np
 from parsers import args
 
+
 class Train():
     def __init__(self,
                  model: nn.Module,
