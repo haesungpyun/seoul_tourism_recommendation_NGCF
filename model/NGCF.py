@@ -159,4 +159,8 @@ class NGCF(nn.Module):
         if len(neg_item) > 0:
             neg_i_embeddings = self.all_items_emb[neg_item, :]
 
+<<<<<<< HEAD
         return u_embeddings, pos_i_embeddings, neg_i_embeddings
+=======
+        return u_embeddings, pos_i_embeddings, neg_i_embeddings
+>>>>>>> origin/main
