@@ -103,7 +103,7 @@ class TourDataset(Dataset):
             return self.users[index][0], self.users[index][1], self.users[index][2], self.users[index][3], \
                    self.users[index][4], self.items[index][0], self.items[index][1]
         else:
-            return self.users[index][1], self.users[index][1], self.users[index][2], self.users[index][3], \
+            return self.users[index][0], self.users[index][1], self.users[index][2], self.users[index][3], \
                    self.users[index][4], self.items[index]
 
     def _negative_sampling(self):

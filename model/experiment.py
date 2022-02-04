@@ -3,10 +3,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from parsers import args
-<<<<<<< HEAD
 
-=======
->>>>>>> origin/main
 
 class Train():
     def __init__(self,
@@ -26,23 +23,15 @@ class Train():
         self.device = device
 
     def train(self):
-<<<<<<< HEAD
         print('------------------------- Train -------------------------')
-=======
-        print('------------------------- Train -------------------------' )
-
->>>>>>> origin/main
-
         with torch.autograd.set_detect_anomaly(True):
             for epoch in range(self.epochs):
                 total_loss = 0
-                i = 0
                 for year, u_id, age, day, sex, pos_item, neg_item in self.train_dataloader:
-                    i += 1
                     year, u_id = year.to(self.device), u_id.to(self.device)
                     age, day, sex = age.to(self.device), day.to(self.device), sex.to(self.device)
                     pos_item, neg_item = pos_item.to(self.device), neg_item.to(self.device)
-                   
+
                     u_embeds, pos_i_embeds, neg_i_embeds = self.model(year=year,
                                                                       u_id=u_id,
                                                                       age=age,
@@ -99,6 +88,11 @@ class Test():
             for year, u_id, age, day, sex, pos_item in self.dataloader:
                 year, u_id, pos_item = year.to(self.device), u_id.to(self.device), pos_item.to(self.device)
                 age, day, sex = age.to(self.device), day.to(self.device), sex.to(self.device)
+                print(
+                    'Test------------------------------------'
+                )
+                print(year[0])
+                print(year, u_id, age, day, sex, pos_item)
 
                 u_embeds, pos_i_embeds, _ = self.model(year=year,
                                                        u_id=u_id,
