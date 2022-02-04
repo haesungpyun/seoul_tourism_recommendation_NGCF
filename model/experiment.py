@@ -72,7 +72,6 @@ class Experiment():
                 all_u_emb = all_u_emb[u_id[0].item(), :].unsqueeze(0)
                 all_pred_ratings = torch.mm(all_u_emb, all_i_emb.T)
                 _, all_rank = torch.topk(all_pred_ratings[0], self.ks)
-                # print('recommendations :', all_rec)
                 gt_rank = pos_item[0].item()
                 HR.append(self.hit(gt_item=gt_rank, pred_items=all_rank))
 
