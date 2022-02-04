@@ -7,7 +7,7 @@ from utils import Preprocess
 from matrix import Matrix
 from NGCF import NGCF
 from bprloss import BPR
-from experiment import Train, Test
+from experiment import Experiment
 from parsers import args
 
 
@@ -61,23 +61,16 @@ model = NGCF(embed_size=64,
              batch_size=args.batch_size,
              device=device).to(device=device)
 
+optimizer = optim.Adam(model.parameters(), lr=args.lr)
+criterion = BPR(weight_decay=0.025, batch_size=args.batch_size)
 
-if __name__ == '__main__':
+train = Experiment(model=model,
+              optimizer=optimizer,
+              criterion=criterion,
+              train_dataloader=train_loader,
+              test_dataloader=test_loader,
+              epochs=args.epoch,
+              device=device)
+train.train()
+print('train ended')
 
-    optimizer = optim.Adam(model.parameters(), lr=args.lr)
-    criterion = BPR(weight_decay=0.025, batch_size=args.batch_size)
-
-    train = Train(model=model,
-                  optimizer=optimizer,
-                  criterion=criterion,
-                  train_dataloader=train_loader,
-                  test_dataloader=test_loader,
-                  epochs=args.epoch,
-                  device=device)
-    train.train()
-    print('train ended')
-
-    test = Test(model=model,
-                dataloader=test_loader,
-                ks=args.ks,
-                device=device)

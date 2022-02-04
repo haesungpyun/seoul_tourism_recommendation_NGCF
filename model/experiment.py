@@ -5,7 +5,7 @@ import numpy as np
 from parsers import args
 
 
-class Train():
+class Experiment():
     def __init__(self,
                  model: nn.Module,
                  optimizer: torch.optim,
@@ -13,13 +13,16 @@ class Train():
                  train_dataloader: torch.utils.data.DataLoader,
                  test_dataloader: torch.utils.data.DataLoader,
                  epochs: int,
+                 ks: int,
                  device):
+
         self.model = model
         self.optimizer = optimizer
         self.criterion = criterion
         self.train_dataloader = train_dataloader
         self.test_dataloader = test_dataloader
         self.epochs = epochs
+        self.ks = ks
         self.device = device
 
     def train(self):
@@ -46,24 +49,40 @@ class Train():
                     self.optimizer.step()
                     total_loss += loss
 
-                test = Test(model=self.model,
-                            dataloader=self.test_dataloader,
-                            ks=args.ks,
-                            device=self.device)
-                HR, NDCG = test.eval()
+                HR, NDCG = self.eval()
                 print(f'epoch {epoch + 1}, epoch loss: {total_loss/len(self.train_dataloader)}, HR:{HR}, NDCG:{NDCG}')
 
+    def eval(self):
+        NDCG = []
+        HR = []
+        with torch.no_grad():
+            for year, u_id, age, day, sex, pos_item in self.test_dataloader:
+                year, u_id, pos_item = year.to(self.device), u_id.to(self.device), pos_item.to(self.device)
+                age, day, sex = age.to(self.device), day.to(self.device), sex.to(self.device)
 
-class Test():
-    def __init__(self,
-                 model: nn.Module,
-                 dataloader: torch.utils.data.DataLoader,
-                 ks: int,
-                 device):
-        self.model = model
-        self.dataloader = dataloader
-        self.ks = ks
-        self.device = device
+                u_embeds, pos_i_embeds, _ = self.model(year=year,
+                                                       u_id=u_id,
+                                                       age=age,
+                                                       day=day,
+                                                       sex=sex,
+                                                       pos_item=pos_item,
+                                                       neg_item=torch.empty(0),
+                                                       node_flag=False)
+
+                all_u_emb, all_i_emb = self.model.all_users_emb, self.model.all_items_emb
+                all_u_emb = all_u_emb[u_id[0].item(), :].unsqueeze(0)
+                all_pred_ratings = torch.mm(all_u_emb, all_i_emb.T)
+                _, all_rank = torch.topk(all_pred_ratings[0], self.ks)
+                all_rec = torch.take(pos_item, pred_rank).cpu().numpy().tolist()
+                # print('recommendations :', all_rec)
+                gt_rank = pos_item[0].item()
+                HR.append(self.hit(gt_item=gt_rank, pred_items=all_rec))
+
+                pred_ratings = torch.mm(u_embeds, pos_i_embeds.T)
+                _, pred_rank = torch.topk(pred_ratings[0], self.ks)
+                recommends = torch.take(pos_item, pred_rank).cpu().numpy().tolist()
+                NDCG.append(self.Ndcg(gt_item=gt_rank, pred_items=recommends))
+        return np.mean(HR), np.mean(NDCG)
 
     def Ndcg(self, gt_item, pred_items):
         # IDCG = self.dcg(gt_items)
@@ -78,35 +97,3 @@ class Test():
         if gt_item in pred_items:
             return 1
         return 0
-
-    def eval(self):
-        NDCG = []
-        HR = []
-        with torch.no_grad():
-            for year, u_id, age, day, sex, pos_item in self.dataloader:
-                year, u_id, pos_item = year.to(self.device), u_id.to(self.device), pos_item.to(self.device)
-                age, day, sex = age.to(self.device), day.to(self.device), sex.to(self.device)
-
-                u_embeds, pos_i_embeds, _ = self.model(year=year,
-                                                       u_id=u_id,
-                                                       age=age,
-                                                       day=day,
-                                                       sex=sex,
-                                                       pos_item=pos_item,
-                                                       neg_item=torch.empty(0),
-                                                       node_flag=False)
-
-                all_u_emb, all_i_emb = self.model.all_users_emb, self.model.all_items_emb
-                all_u_emb = all_u_emb[u_id[0], :].unsqueeze(0)
-                all_pred_ratings = torch.mm(all_u_emb, all_i_emb.T)
-                _, all_rank = torch.topk(all_pred_ratings[0], self.ks)
-                all_rec = torch.take(pos_item, pred_rank).cpu().numpy().tolist()
-                # print('recommendations :', all_rec)
-                gt_rank = pos_item[0].item()
-                HR.append(self.hit(gt_item=gt_rank, pred_items=all_rec))
-
-                pred_ratings = torch.mm(u_embeds, pos_i_embeds.T)
-                _, pred_rank = torch.topk(pred_ratings[0], self.ks)
-                recommends = torch.take(pos_item, pred_rank).cpu().numpy().tolist()
-                NDCG.append(self.Ndcg(gt_item=gt_rank, pred_items=recommends))
-        return np.mean(HR), np.mean(NDCG)

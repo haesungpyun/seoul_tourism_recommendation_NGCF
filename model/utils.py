@@ -4,7 +4,8 @@ import pandas as pd
 import numpy as np
 import os
 from sklearn.model_selection import train_test_split
-
+import warnings
+warnings.filterwarnings('ignore')
 
 class Preprocess(object):
     def __init__(self, root_dir: str,
@@ -13,6 +14,7 @@ class Preprocess(object):
         self.root_dir = root_dir
         self.train_by_destination = train_by_destination
         self.df_raw = self.load_data()
+        warnings.filterwarnings('ignore')
 
     def load_data(self):
         root_dir = self.root_dir
