@@ -20,7 +20,7 @@ class Preprocess(object):
         root_dir = self.root_dir
 
         path = os.path.join(root_dir, 'date_data.csv')
-        return pd.read_csv(path).sample(1000)
+        return pd.read_csv(path)
 
     def map_userid(self):
         train_by_destination = self.train_by_destination
