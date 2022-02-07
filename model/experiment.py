@@ -47,7 +47,6 @@ class Experiment():
                 loss.backward()
                 self.optimizer.step()
                 total_loss += loss
-                break
             HR, NDCG, RMSE = self.eval()
             print(f'epoch {epoch + 1}, epoch loss: {total_loss / len(self.train_dataloader)}, HR:{HR}, NDCG:{NDCG}, RMSE:{RMSE}')
 
@@ -91,7 +90,6 @@ class Experiment():
                 pred_rate = pred_ratings[0,0]
                 RMSE += (pred_rate - congestion)**2
 
-                break
         return np.mean(HR), np.mean(NDCG), np.sqrt(RMSE/len(self.test_dataloader))
 
     def Ndcg(self, gt_item, pred_items):
