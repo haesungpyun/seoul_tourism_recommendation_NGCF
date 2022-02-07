@@ -55,6 +55,7 @@ class Experiment():
         NDCG = []
         HR = []
         with torch.no_grad():
+            self.model.eval()
             for year, u_id, age, day, sex, pos_item in self.test_dataloader:
                 year, u_id, pos_item = year.to(self.device), u_id.to(self.device), pos_item.to(self.device)
                 age, day, sex = age.to(self.device), day.to(self.device), sex.to(self.device)

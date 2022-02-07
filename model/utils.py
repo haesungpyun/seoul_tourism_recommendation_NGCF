@@ -20,7 +20,10 @@ class Preprocess(object):
         root_dir = self.root_dir
 
         path = os.path.join(root_dir, 'date_data.csv')
-        return pd.read_csv(path)
+        df = pd.read_csv(path).sample(10000)
+        df.loc[df['dayofweek'] <= 4, 'dayofweek'] = 0
+        df.loc[df['dayofweek'] > 4, 'dayofweek'] = 1
+        return df
 
     def map_userid(self):
         train_by_destination = self.train_by_destination
@@ -58,7 +61,7 @@ class Preprocess(object):
         # ignore warnings
         np.warnings.filterwarnings('ignore')
         df_18 = total_df.loc[total_df['year'] == 18]
-        df_19 = total_df.loc[total_df['year'] == 19]
+        df_19 = total_df.loc[total_df['year'] == 19].sample(frac=0.1, replace=False)
 
         if train_by_destination:
             train_dataframe, test_dataframe, y_train, y_test = train_test_split(total_df, total_df['destination'],

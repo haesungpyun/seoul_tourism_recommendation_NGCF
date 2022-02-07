@@ -96,13 +96,18 @@ day = input("관광할 요일을 입력하세요(ex mon):")
 sex = input('관광객의 성별을 입력하세요(ex m):')
 age = input('관광객의 연령을 입력하세요(ex 25):')
 
-week = ['mon', 'tue', 'wed', 'thur', 'fri', 'sat', 'sun']
+week = [['mon', 'tue', 'wed', 'thur', 'fri'], ['sat', 'sun']]
 gender = ['f', 'm']
 if dates[0][0] == 1:
     date = dates[0] + dates[1]
 else:
     date = dates[0][1] + dates[1]
-day = str(week.index(day))
+
+if day in week[0]:
+    day = str(0)
+else:
+    day = str(1)
+
 sex = str(gender.index(sex))
 
 u_feats = date + day + sex + age
