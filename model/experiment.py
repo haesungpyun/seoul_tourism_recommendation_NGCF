@@ -69,16 +69,22 @@ class Experiment():
                                                        neg_item=torch.empty(0),
                                                        node_flag=False)
 
-                all_i_emb = self.model.all_items_emb
-                all_pred_ratings = torch.mm(u_embeds, all_i_emb.T)
-                _, all_rank = torch.topk(all_pred_ratings[0], self.ks)
+                # all_i_emb = self.model.all_items_emb
+                # all_pred_ratings = torch.mm(u_embeds, all_i_emb.T)
+                # _, all_rank = torch.topk(all_pred_ratings[0], self.ks)
                 gt_rank = pos_item[0].item()
-                HR.append(self.hit(gt_item=gt_rank, pred_items=all_rank))
-
                 pred_ratings = torch.mm(u_embeds, pos_i_embeds.T)
+
+                # HR
+                _, pred_rank = torch.topk(pred_ratings[0], 3)
+                recommends_HR = torch.take(pos_item, pred_rank).cpu().numpy().tolist()
+                HR.append(self.hit(gt_item=gt_rank, pred_items=recommends_HR))
+
+
+                # NDCG
                 _, pred_rank = torch.topk(pred_ratings[0], self.ks)
-                recommends = torch.take(pos_item, pred_rank).cpu().numpy().tolist()
-                NDCG.append(self.Ndcg(gt_item=gt_rank, pred_items=recommends))
+                recommends_NDCG = torch.take(pos_item, pred_rank).cpu().numpy().tolist()
+                NDCG.append(self.Ndcg(gt_item=gt_rank, pred_items=recommends_NDCG))
 
         return np.mean(HR), np.mean(NDCG)
 
