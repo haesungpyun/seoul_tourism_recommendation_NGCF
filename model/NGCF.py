@@ -102,7 +102,6 @@ class NGCF(nn.Module):
         drop = torch.sparse.FloatTensor(i, v, mat.shape).to(self.device)
         return drop
 
-
     def forward(self, year, u_id, age, date, sex, pos_item, neg_item, node_flag):
         age_emb = self.age_emb(age[0])
         date_emb = self.date_emb(date[0])
