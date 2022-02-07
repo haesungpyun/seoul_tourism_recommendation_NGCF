@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from scipy.linalg import get_blas_funcs
 
 
 class NGCF(nn.Module):
@@ -119,9 +118,9 @@ class NGCF(nn.Module):
         year_idx = year.unique()[0] % 18
         L = self.lap_list[year_idx].to(self.device)
 
-        self.user_embedding.weight[u_id[0]] = \
-            self.user_embedding.weight[u_id[0]].detach().cpu().numpy() * (1 - self.mlp_ratio).detach().cpu().numpy() +\
-            user_mlp.detach().cpu().numpy() * self.mlp_ratio.detach().cpu().numpy()
+        self.user_embedding.weight.data[u_id[0]] = \
+            self.user_embedding.weight[u_id[0]].detach().cpu().clone() * (1 - self.mlp_ratio) +\
+            user_mlp.detach().cpu().clone() * self.mlp_ratio
 
         E = torch.cat((self.user_embedding.weight, self.item_embedding.weight), dim=0)
         all_E = [E]
@@ -133,8 +132,7 @@ class NGCF(nn.Module):
             else:
                 L = L
 
-            gemm = get_blas_funcs("gemm", [L, E])
-            L_E = gemm(1, L, E)
+            L_E = torch.mm(L, E)
             L_E_W1 = self.w1_list[i](L_E)
 
             E_W1 = self.w1_list[i](E)
