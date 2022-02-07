@@ -151,15 +151,14 @@ class TourDataset(Dataset):
                 else:
                     item.append(iid)
 
-                for k in range(ng_ratio):
-                    # negative instance
-                    negative_item = np.random.choice(tmp_negs)
-                    tmp_negs = np.delete(tmp_negs, np.where(tmp_negs == negative_item))
+                # negative instance
+                negative_item = np.random.choice(tmp_negs, ng_ratio, replace=False)
 
-                    if self.train:
-                        item.append(negative_item)
-                    else:
-                        items_list.append(negative_item)
+                if self.train:
+                    item += negative_item.tolist()
+                else:
+                    items_list += negative_item.tolist()
+                    for _ in range(ng_ratio):
                         users_list.append([year, uid, a, d, s])
 
                 if self.train:

@@ -3,7 +3,7 @@ import torch
 import scipy.sparse as sp
 import numpy as np
 import torch.nn as nn
-
+from scipy.linalg import get_blas_funcs
 
 class Matrix(nn.Module):
     """
@@ -44,7 +44,8 @@ class Matrix(nn.Module):
             d_mat_inv = np.zeros(adj_mat.shape)
 
             np.fill_diagonal(d_mat_inv, d_sqrt)
-            adj_mat = np.linalg.multi_dot([d_mat_inv, adj_mat.toarray(), d_mat_inv])
+            gemm = get_blas_funcs("gemm", [d_mat_inv, adj_mat.toarray(), d_mat_inv])
+            gemm(1, d_mat_inv, adj_mat.toarray(), d_mat_inv)
             adj_mat = sp.dok_matrix(adj_mat)
 
             year_idx = year % 18

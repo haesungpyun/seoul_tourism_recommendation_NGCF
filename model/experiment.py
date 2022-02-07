@@ -2,6 +2,7 @@ from torch.utils.data import Dataset
 import torch
 import torch.nn as nn
 import numpy as np
+from scipy.linalg import get_blas_funcs
 
 
 class Experiment():
@@ -26,30 +27,30 @@ class Experiment():
 
     def train(self):
         print('------------------------- Train -------------------------')
-        with torch.autograd.set_detect_anomaly(True):
-            for epoch in range(self.epochs):
-                total_loss = 0
-                for year, u_id, age, day, sex, pos_item, neg_item in self.train_dataloader:
-                    year, u_id = year.to(self.device), u_id.to(self.device)
-                    age, day, sex = age.to(self.device), day.to(self.device), sex.to(self.device)
-                    pos_item, neg_item = pos_item.to(self.device), neg_item.to(self.device)
 
-                    u_embeds, pos_i_embeds, neg_i_embeds = self.model(year=year,
-                                                                      u_id=u_id,
-                                                                      age=age,
-                                                                      day=day,
-                                                                      sex=sex,
-                                                                      pos_item=pos_item,
-                                                                      neg_item=neg_item,
-                                                                      node_flag=True)
-                    self.optimizer.zero_grad()
-                    loss = self.criterion(u_embeds, pos_i_embeds, neg_i_embeds)
-                    loss.backward()
-                    self.optimizer.step()
-                    total_loss += loss
+        for epoch in range(self.epochs):
+            total_loss = 0
+            for year, u_id, age, day, sex, pos_item, neg_item in self.train_dataloader:
+                year, u_id = year.to(self.device), u_id.to(self.device)
+                age, day, sex = age.to(self.device), day.to(self.device), sex.to(self.device)
+                pos_item, neg_item = pos_item.to(self.device), neg_item.to(self.device)
 
-                HR, NDCG = self.eval()
-                print(f'epoch {epoch + 1}, epoch loss: {total_loss/len(self.train_dataloader)}, HR:{HR}, NDCG:{NDCG}')
+                u_embeds, pos_i_embeds, neg_i_embeds = self.model(year=year,
+                                                                  u_id=u_id,
+                                                                  age=age,
+                                                                  day=day,
+                                                                  sex=sex,
+                                                                  pos_item=pos_item,
+                                                                  neg_item=neg_item,
+                                                                  node_flag=True)
+                self.optimizer.zero_grad()
+                loss = self.criterion(u_embeds, pos_i_embeds, neg_i_embeds)
+                loss.backward()
+                self.optimizer.step()
+                total_loss += loss
+
+            HR, NDCG = self.eval()
+            print(f'epoch {epoch + 1}, epoch loss: {total_loss / len(self.train_dataloader)}, HR:{HR}, NDCG:{NDCG}')
 
     def eval(self):
         NDCG = []
@@ -68,17 +69,24 @@ class Experiment():
                                                        neg_item=torch.empty(0),
                                                        node_flag=False)
 
-                all_u_emb, all_i_emb = self.model.all_users_emb, self.model.all_items_emb
-                all_u_emb = all_u_emb[u_id[0].item(), :].unsqueeze(0)
-                all_pred_ratings = torch.mm(all_u_emb, all_i_emb.T)
+                all_i_emb = self.model.all_items_emb
+
+                gemm= get_blas_funcs("gemm", [u_embeds, all_i_emb.T])
+                all_pred_ratings = gemm(1, u_embeds, all_i_emb.T)
+                # all_pred_ratings = torch.mm(u_embeds, all_i_emb.T)
                 _, all_rank = torch.topk(all_pred_ratings[0], self.ks)
+
                 gt_rank = pos_item[0].item()
                 HR.append(self.hit(gt_item=gt_rank, pred_items=all_rank))
 
-                pred_ratings = torch.mm(u_embeds, pos_i_embeds.T)
+                gemm= get_blas_funcs("gemm", [u_embeds, pos_i_embeds.T])
+                pred_ratings = gemm(1, u_embeds, pos_i_embeds.T)
+
+                # pred_ratings = torch.mm(u_embeds, pos_i_embeds.T)
                 _, pred_rank = torch.topk(pred_ratings[0], self.ks)
                 recommends = torch.take(pos_item, pred_rank).cpu().numpy().tolist()
                 NDCG.append(self.Ndcg(gt_item=gt_rank, pred_items=recommends))
+
         return np.mean(HR), np.mean(NDCG)
 
     def Ndcg(self, gt_item, pred_items):
