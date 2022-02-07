@@ -76,7 +76,7 @@ class Experiment():
                 pred_ratings = torch.mm(u_embeds, pos_i_embeds.T)
 
                 # HR
-                _, pred_rank = torch.topk(pred_ratings[0], 3)
+                _, pred_rank = torch.topk(pred_ratings[0], 5)
                 recommends_HR = torch.take(pos_item, pred_rank).cpu().numpy().tolist()
                 HR.append(self.hit(gt_item=gt_rank, pred_items=recommends_HR))
 
