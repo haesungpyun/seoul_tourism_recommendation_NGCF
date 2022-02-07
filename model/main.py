@@ -23,11 +23,9 @@ total_df, train_df, test_df = preprocess.split_train_test()
 
 num_dict = {'user': total_df['userid'].nunique(),
             'item': total_df['itemid'].nunique(),
-            'day': total_df['dayofweek'].max() + 1,
             'sex': total_df['sex'].max() + 1,
             'age': total_df['age'].max() + 1,
-            'date': total_df['month-day'].max() + 1}
-
+            'date': total_df['dateid'].max() + 1}
 
 train_dataset = TourDataset(df=train_df,
                             total_df=total_df,
@@ -84,15 +82,18 @@ torch.save(model, model_dir)
 print('---------------------------------------------------------------------------------------------')
 print('------------------------------------------HELP-----------------------------------------------')
 print('월일 : 01 01 ~ 12 31')
-print('요일 : mon / tue / wed / thur / fri / sat / sun')
 print('성별 : f / m')
 print('연령 : 5-9세이하 / 15-10~19 / 25-20~29 / 35-30~39 / 45-40~49 / 55-50~59 / 65-60~69 / 75-70세이상')
 print('---------------------------------------------------------------------------------------------')
 user_dict = preprocess.user_dict
 item_dict = preprocess.item_dict
+date_dict = preprocess.date_dict
+print((user_dict))
+print(item_dict)
+print(date_dict)
+
 
 dates = input("관광할 월-일을 입력하세요(ex 01 01):").split()
-day = input("관광할 요일을 입력하세요(ex mon):")
 sex = input('관광객의 성별을 입력하세요(ex m):')
 age = input('관광객의 연령을 입력하세요(ex 25):')
 
@@ -103,28 +104,23 @@ if dates[0][0] == 1:
 else:
     date = dates[0][1] + dates[1]
 
-if day in week[0]:
-    day = str(0)
-else:
-    day = str(1)
-
 sex = str(gender.index(sex))
 
-u_feats = date + day + sex + age
+u_feats = date + sex + age
 
 u_id = user_dict[u_feats]
+date = date_dict[int(date)]
 u_id = torch.LongTensor([u_id])
+date = torch.LongTensor([date])
 age = torch.LongTensor([int(age)])
-day = torch.LongTensor([int(day)])
 sex = torch.LongTensor([int(sex)])
 print(u_id, type(u_id))
-print(type(day), day)
 print(type(age), age)
 print(type(sex), sex)
 u_embeds, _, _ = model(year=torch.LongTensor([0]),
                 u_id=u_id,
                 age=age,
-                day=day,
+                date=date,
                 sex=sex,
                 pos_item=torch.LongTensor([0]),
                 neg_item=torch.empty(0),
@@ -134,7 +130,9 @@ all_u_emb, all_i_emb = model.all_users_emb, model.all_items_emb
 all_pred_ratings = torch.mm(u_embeds, all_i_emb.T)
 _, all_rank = torch.topk(all_pred_ratings[0], 100)
 recommend_des = []
+
 for i in range(100):
     recommend_des.append(list(item_dict.keys())[list(item_dict.values()).index(all_rank[i])])
 
 print(recommend_des)
+print(num_dict)

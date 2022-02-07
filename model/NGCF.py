@@ -34,7 +34,6 @@ class NGCF(nn.Module):
         # self.user_embedding = nn.Parameter(torch.randn(self.n_user, self.emb_size))
         # self.item_embedding = nn.Parameter(torch.randn(self.n_item, self.emb_size))
         self.date_emb = nn.Embedding(num_dict['date'], self.emb_size)
-        self.day_emb = nn.Embedding(num_dict['day'], self.emb_size)
         self.sex_emb = nn.Embedding(num_dict['sex'], self.emb_size)
         self.age_emb = nn.Embedding(num_dict['age'], self.emb_size)
         self.item_embedding = nn.Embedding(self.n_item, self.emb_size)
@@ -66,7 +65,6 @@ class NGCF(nn.Module):
         initializer(self.user_embedding.weight)
         initializer(self.item_embedding.weight)
 
-        initializer(self.day_emb.weight)
         initializer(self.sex_emb.weight)
         initializer(self.age_emb.weight)
         initializer(self.date_emb.weight)
@@ -105,9 +103,9 @@ class NGCF(nn.Module):
         return drop
 
 
-    def forward(self, year, u_id, age, day, sex, pos_item, neg_item, node_flag):
+    def forward(self, year, u_id, age, date, sex, pos_item, neg_item, node_flag):
         age_emb = self.age_emb(age[0])
-        date_emb = self.date_emb(day[0])
+        date_emb = self.date_emb(date[0])
         sex_emb = self.sex_emb(sex[0])
         age_emb = torch.reshape(age_emb, (-1,))
         date_emb = torch.reshape(date_emb, (-1,))

@@ -29,15 +29,15 @@ class Experiment():
 
         for epoch in range(self.epochs):
             total_loss = 0
-            for year, u_id, age, day, sex, pos_item, neg_item in self.train_dataloader:
+            for year, u_id, age, date, sex, pos_item, neg_item in self.train_dataloader:
                 year, u_id = year.to(self.device), u_id.to(self.device)
-                age, day, sex = age.to(self.device), day.to(self.device), sex.to(self.device)
+                age, date, sex = age.to(self.device), date.to(self.device), sex.to(self.device)
                 pos_item, neg_item = pos_item.to(self.device), neg_item.to(self.device)
 
                 u_embeds, pos_i_embeds, neg_i_embeds = self.model(year=year,
                                                                   u_id=u_id,
                                                                   age=age,
-                                                                  day=day,
+                                                                  date=date,
                                                                   sex=sex,
                                                                   pos_item=pos_item,
                                                                   neg_item=neg_item,
@@ -47,7 +47,7 @@ class Experiment():
                 loss.backward()
                 self.optimizer.step()
                 total_loss += loss
-
+                break
             HR, NDCG = self.eval()
             print(f'epoch {epoch + 1}, epoch loss: {total_loss / len(self.train_dataloader)}, HR:{HR}, NDCG:{NDCG}')
 
@@ -56,14 +56,14 @@ class Experiment():
         HR = []
         with torch.no_grad():
             self.model.eval()
-            for year, u_id, age, day, sex, pos_item in self.test_dataloader:
+            for year, u_id, age, date, sex, pos_item in self.test_dataloader:
                 year, u_id, pos_item = year.to(self.device), u_id.to(self.device), pos_item.to(self.device)
-                age, day, sex = age.to(self.device), day.to(self.device), sex.to(self.device)
+                age, date, sex = age.to(self.device), date.to(self.device), sex.to(self.device)
 
                 u_embeds, pos_i_embeds, _ = self.model(year=year,
                                                        u_id=u_id,
                                                        age=age,
-                                                       day=day,
+                                                       date=date,
                                                        sex=sex,
                                                        pos_item=pos_item,
                                                        neg_item=torch.empty(0),
@@ -80,12 +80,11 @@ class Experiment():
                 recommends_HR = torch.take(pos_item, pred_rank).cpu().numpy().tolist()
                 HR.append(self.hit(gt_item=gt_rank, pred_items=recommends_HR))
 
-
                 # NDCG
                 _, pred_rank = torch.topk(pred_ratings[0], self.ks)
                 recommends_NDCG = torch.take(pos_item, pred_rank).cpu().numpy().tolist()
                 NDCG.append(self.Ndcg(gt_item=gt_rank, pred_items=recommends_NDCG))
-
+                break
         return np.mean(HR), np.mean(NDCG)
 
     def Ndcg(self, gt_item, pred_items):

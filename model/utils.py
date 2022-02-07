@@ -15,15 +15,12 @@ class Preprocess(object):
         self.df_raw = self.load_data()
         self.user_dict = None
         self.item_dict = None
+        self.date_dict = None
 
     def load_data(self):
         root_dir = self.root_dir
-
         path = os.path.join(root_dir, 'date_data.csv')
-        df = pd.read_csv(path).sample(10000)
-        df.loc[df['dayofweek'] <= 4, 'dayofweek'] = 0
-        df.loc[df['dayofweek'] > 4, 'dayofweek'] = 1
-        return df
+        return pd.read_csv(path).sample(10000)
 
     def map_userid(self):
         train_by_destination = self.train_by_destination
@@ -34,8 +31,7 @@ class Preprocess(object):
             df = self.df_raw.loc[self.df_raw['year'] != 20]
 
         def merge_cols():
-            merged = pd.Series(df['month-day'].apply(str) + df['dayofweek'].apply(str) + \
-                               df['sex'].apply(str) + df['age'].apply(str))
+            merged = pd.Series(df['month-day'].apply(str) + df['sex'].apply(str) + df['age'].apply(str))
             user_map = {item: i for i, item in enumerate(np.sort(merged.unique()))}
             item_map = {item: i for i, item in enumerate(np.sort(df['destination'].unique()))}
             date_map = {item: i for i, item in enumerate(np.sort(df['month-day'].unique()))}
@@ -47,11 +43,14 @@ class Preprocess(object):
         def map_func(a, b, c):
             return user_map[a], item_map[b], date_map[c]
 
+        np.warnings.filterwarnings('ignore')
         vec_func = np.vectorize(map_func)
-        df.loc[:, 'userid'], df.loc[:, 'itemid'], df.loc[:, 'dateid'] = vec_func(merged, df['destination'],
-                                                                                 df['month-day'])
+        df.loc[:, 'userid'], df.loc[:, 'itemid'], df.loc[:, 'dateid'] =\
+            vec_func(merged, df['destination'], df['month-day'])
+
         self.user_dict = user_map
         self.item_dict = item_map
+        self.date_dict = date_map
         return df
 
     def split_train_test(self):
@@ -61,7 +60,7 @@ class Preprocess(object):
         # ignore warnings
         np.warnings.filterwarnings('ignore')
         df_18 = total_df.loc[total_df['year'] == 18]
-        df_19 = total_df.loc[total_df['year'] == 19].sample(frac=0.1, replace=False)
+        df_19 = total_df.loc[total_df['year'] == 19]
 
         if train_by_destination:
             train_dataframe, test_dataframe, y_train, y_test = train_test_split(total_df, total_df['destination'],
@@ -138,7 +137,7 @@ class TourDataset(Dataset):
             pos_item_set = zip(tmp['year'],
                                tmp['userid'],
                                tmp['age'],
-                               tmp['dayofweek'],
+                               tmp['dateid'],
                                tmp['sex'],
                                tmp.loc[tmp['congestion_1'] >= quarter, 'itemid'])
 
