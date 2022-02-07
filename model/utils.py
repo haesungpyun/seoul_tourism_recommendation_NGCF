@@ -20,7 +20,7 @@ class Preprocess(object):
     def load_data(self):
         root_dir = self.root_dir
         path = os.path.join(root_dir, 'date_data.csv')
-        return pd.read_csv(path).sample(10000)
+        return pd.read_csv(path)
 
     def map_userid(self):
         train_by_destination = self.train_by_destination
@@ -31,7 +31,7 @@ class Preprocess(object):
             df = self.df_raw.loc[self.df_raw['year'] != 20]
 
         def merge_cols():
-            merged = pd.Series(df['month-day'].apply(str) + df['sex'].apply(str) + df['age'].apply(str))
+            merged = pd.Series(df['age'].apply(str) + df['sex'].apply(str) + df['month-day'].apply(str))
             user_map = {item: i for i, item in enumerate(np.sort(merged.unique()))}
             item_map = {item: i for i, item in enumerate(np.sort(df['destination'].unique()))}
             date_map = {item: i for i, item in enumerate(np.sort(df['month-day'].unique()))}
@@ -129,7 +129,7 @@ class TourDataset(Dataset):
         if self.train:
             ng_ratio = 1
         else:
-            ng_ratio = 9
+            ng_ratio = 24
 
         for i in df['userid'].unique():
             tmp = df.loc[df['userid'].isin([i])]
@@ -140,7 +140,6 @@ class TourDataset(Dataset):
                                tmp['dateid'],
                                tmp['sex'],
                                tmp.loc[tmp['congestion_1'] >= quarter, 'itemid'])
-
             neg_items = np.setxor1d(all_destinations, tmp.loc[tmp['congestion_1'] >= quarter, 'itemid'])
 
             for year, uid, a, d, s, iid in pos_item_set:
