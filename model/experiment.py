@@ -4,7 +4,6 @@ import torch.nn as nn
 import numpy as np
 
 
-
 class Experiment():
     def __init__(self,
                  model: nn.Module,

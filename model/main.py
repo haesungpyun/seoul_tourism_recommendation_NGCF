@@ -1,3 +1,4 @@
+import pandas as pd
 import torch
 from torch.utils.data import DataLoader
 import torch.optim as optim
@@ -50,6 +51,7 @@ matrix_generator = Matrix(total_df=total_df,
                           cols=['year', 'userid', 'itemid', 'congestion_1'],
                           num_dict=num_dict,
                           device=device)
+
 lap_list = matrix_generator.create_matrix()
 
 model = NGCF(embed_size=64,
@@ -86,32 +88,48 @@ print('요일 : mon / tue / wed / thur / fri / sat / sun')
 print('성별 : f / m')
 print('연령 : 5-9세이하 / 15-10~19 / 25-20~29 / 35-30~39 / 45-40~49 / 55-50~59 / 65-60~69 / 75-70세이상')
 print('---------------------------------------------------------------------------------------------')
+user_dict = preprocess.user_dict
+item_dict = preprocess.item_dict
 
-date = input("관광할 월-일을 입력하세요(ex 01 01):").split()
+dates = input("관광할 월-일을 입력하세요(ex 01 01):").split()
 day = input("관광할 요일을 입력하세요(ex mon):")
 sex = input('관광객의 성별을 입력하세요(ex m):')
 age = input('관광객의 연령을 입력하세요(ex 25):')
 
 week = ['mon', 'tue', 'wed', 'thur', 'fri', 'sat', 'sun']
 gender = ['f', 'm']
-date = date[0] + date[1]
+if dates[0][0] == 1:
+    date = dates[0] + dates[1]
+else:
+    date = dates[0][1] + dates[1]
 day = str(week.index(day))
 sex = str(gender.index(sex))
 
-u_id = date + day + sex + age
+u_feats = date + day + sex + age
 
-_, _, _ = model(year=0,
+u_id = user_dict[u_feats]
+u_id = torch.LongTensor([u_id])
+age = torch.LongTensor([int(age)])
+day = torch.LongTensor([int(day)])
+sex = torch.LongTensor([int(sex)])
+print(u_id, type(u_id))
+print(type(day), day)
+print(type(age), age)
+print(type(sex), sex)
+u_embeds, _, _ = model(year=torch.LongTensor([0]),
                 u_id=u_id,
                 age=age,
                 day=day,
                 sex=sex,
-                pos_item=torch.empty(0),
+                pos_item=torch.LongTensor([0]),
                 neg_item=torch.empty(0),
                 node_flag=False)
 
 all_u_emb, all_i_emb = model.all_users_emb, model.all_items_emb
-all_u_emb = all_u_emb[u_id, :].unsqueeze(0)
-all_pred_ratings = torch.mm(all_u_emb, all_i_emb.T)
-_, all_rank = torch.topk(all_pred_ratings[0], 10)
+all_pred_ratings = torch.mm(u_embeds, all_i_emb.T)
+_, all_rank = torch.topk(all_pred_ratings[0], 100)
+recommend_des = []
+for i in range(100):
+    recommend_des.append(list(item_dict.keys())[list(item_dict.values()).index(all_rank[i])])
 
-print(all_rank)
+print(recommend_des)

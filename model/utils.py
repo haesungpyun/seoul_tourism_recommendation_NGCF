@@ -31,8 +31,8 @@ class Preprocess(object):
             df = self.df_raw.loc[self.df_raw['year'] != 20]
 
         def merge_cols():
-            merged = pd.Series(df['dayofweek'].apply(str) + df['age'].apply(str) + \
-                               df['sex'].apply(str) + df['month-day'].apply(str))
+            merged = pd.Series(df['month-day'].apply(str) + df['dayofweek'].apply(str) + \
+                               df['sex'].apply(str) + df['age'].apply(str))
             user_map = {item: i for i, item in enumerate(np.sort(merged.unique()))}
             item_map = {item: i for i, item in enumerate(np.sort(df['destination'].unique()))}
             date_map = {item: i for i, item in enumerate(np.sort(df['month-day'].unique()))}
