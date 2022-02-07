@@ -70,9 +70,6 @@ class Experiment():
                                                        neg_item=torch.empty(0),
                                                        node_flag=False)
 
-                # all_i_emb = self.model.all_items_emb
-                # all_pred_ratings = torch.mm(u_embeds, all_i_emb.T)
-                # _, all_rank = torch.topk(all_pred_ratings[0], self.ks)
                 gt_rank = pos_item[0].item()
                 pred_ratings = torch.mm(u_embeds, pos_i_embeds.T)
 
