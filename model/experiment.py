@@ -48,17 +48,19 @@ class Experiment():
                 self.optimizer.step()
                 total_loss += loss
                 break
-            HR, NDCG = self.eval()
-            print(f'epoch {epoch + 1}, epoch loss: {total_loss / len(self.train_dataloader)}, HR:{HR}, NDCG:{NDCG}')
+            HR, NDCG, RMSE = self.eval()
+            print(f'epoch {epoch + 1}, epoch loss: {total_loss / len(self.train_dataloader)}, HR:{HR}, NDCG:{NDCG}, RMSE:{RMSE}')
 
     def eval(self):
         NDCG = []
         HR = []
+        RMSE = 0
         with torch.no_grad():
             self.model.eval()
-            for year, u_id, age, date, sex, pos_item in self.test_dataloader:
+            for year, u_id, age, date, sex, pos_item, congestion in self.test_dataloader:
                 year, u_id, pos_item = year.to(self.device), u_id.to(self.device), pos_item.to(self.device)
                 age, date, sex = age.to(self.device), date.to(self.device), sex.to(self.device)
+                congestion = congestion.to(self.device)
 
                 u_embeds, pos_i_embeds, _ = self.model(year=year,
                                                        u_id=u_id,
@@ -84,8 +86,13 @@ class Experiment():
                 _, pred_rank = torch.topk(pred_ratings[0], self.ks)
                 recommends_NDCG = torch.take(pos_item, pred_rank).cpu().numpy().tolist()
                 NDCG.append(self.Ndcg(gt_item=gt_rank, pred_items=recommends_NDCG))
+
+                # RMSE
+                pred_rate = pred_ratings[0,0]
+                RMSE += (pred_rate - congestion)**2
+
                 break
-        return np.mean(HR), np.mean(NDCG)
+        return np.mean(HR), np.mean(NDCG), np.sqrt(RMSE/len(self.test_dataloader))
 
     def Ndcg(self, gt_item, pred_items):
         # IDCG = self.dcg(gt_items)

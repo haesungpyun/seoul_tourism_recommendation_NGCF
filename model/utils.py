@@ -20,7 +20,7 @@ class Preprocess(object):
     def load_data(self):
         root_dir = self.root_dir
         path = os.path.join(root_dir, 'date_data.csv')
-        return pd.read_csv(path)
+        return pd.read_csv(path).sample(1000)
 
     def map_userid(self):
         train_by_destination = self.train_by_destination
@@ -112,7 +112,7 @@ class TourDataset(Dataset):
                    self.users[index][4], self.items[index][0], self.items[index][1]
         else:
             return self.users[index][0], self.users[index][1], self.users[index][2], self.users[index][3], \
-                   self.users[index][4], self.items[index]
+                   self.users[index][4], self.users[index][5], self.items[index]
 
     def _negative_sampling(self):
         '''
@@ -139,16 +139,18 @@ class TourDataset(Dataset):
                                tmp['age'],
                                tmp['dateid'],
                                tmp['sex'],
-                               tmp.loc[tmp['congestion_1'] >= quarter, 'itemid'])
+                               tmp.loc[tmp['congestion_1'] >= quarter, 'itemid'],
+                               tmp['congestion_1'])
+
             neg_items = np.setxor1d(all_destinations, tmp.loc[tmp['congestion_1'] >= quarter, 'itemid'])
 
-            for year, uid, a, d, s, iid in pos_item_set:
+            for year, uid, a, d, s, iid, c in pos_item_set:
                 tmp_negs = neg_items.copy()
                 # positive instance
                 item = []
                 if not self.train:
                     items_list.append(iid)
-                    users_list.append([year, uid, a, d, s])
+                    users_list.append([year, uid, a, d, s, c])
                 else:
                     item.append(iid)
 
@@ -160,7 +162,7 @@ class TourDataset(Dataset):
                 else:
                     items_list += negative_item.tolist()
                     for _ in range(ng_ratio):
-                        users_list.append([year, uid, a, d, s])
+                        users_list.append([year, uid, a, d, s, c])
 
                 if self.train:
                     items_list.append(item)
