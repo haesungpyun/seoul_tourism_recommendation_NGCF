@@ -2,7 +2,6 @@ from torch.utils.data import Dataset
 import torch
 import torch.nn as nn
 import numpy as np
-from scipy.linalg import get_blas_funcs
 
 
 
@@ -71,15 +70,12 @@ class Experiment():
                                                        node_flag=False)
 
                 all_i_emb = self.model.all_items_emb
-
                 all_pred_ratings = torch.mm(u_embeds, all_i_emb.T)
-                # all_pred_ratings = torch.mm(u_embeds, all_i_emb.T)
                 _, all_rank = torch.topk(all_pred_ratings[0], self.ks)
                 gt_rank = pos_item[0].item()
                 HR.append(self.hit(gt_item=gt_rank, pred_items=all_rank))
 
                 pred_ratings = torch.mm(u_embeds, pos_i_embeds.T)
-                # pred_ratings = torch.mm(u_embeds, pos_i_embeds.T)
                 _, pred_rank = torch.topk(pred_ratings[0], self.ks)
                 recommends = torch.take(pos_item, pred_rank).cpu().numpy().tolist()
                 NDCG.append(self.Ndcg(gt_item=gt_rank, pred_items=recommends))

@@ -120,7 +120,7 @@ class NGCF(nn.Module):
 
         self.user_embedding.weight.data[u_id[0]] = \
             self.user_embedding.weight[u_id[0]].detach().cpu().clone() * (1 - self.mlp_ratio) +\
-            user_mlp.detach().cpu().clone() * self.mlp_ratio
+            user_mlp.cpu().clone() * self.mlp_ratio
 
         E = torch.cat((self.user_embedding.weight, self.item_embedding.weight), dim=0)
         all_E = [E]
