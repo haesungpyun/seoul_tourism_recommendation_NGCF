@@ -30,9 +30,9 @@ class Experiment():
         for epoch in range(self.epochs):
             total_loss = 0
             d1 = datetime.now()
-            for year, u_id, age, date, sex, pos_item, neg_item in self.train_dataloader:
+            for year, u_id, age, date, sex, dow, pos_item, neg_item in self.train_dataloader:
                 year, u_id = year.to(self.device), u_id.to(self.device)
-                age, date, sex = age.to(self.device), date.to(self.device), sex.to(self.device)
+                age, date, sex, dow = age.to(self.device), date.to(self.device), sex.to(self.device), dow.to(self.device)
                 pos_item, neg_item = pos_item.to(self.device), neg_item.to(self.device)
 
                 u_embeds, pos_i_embeds, neg_i_embeds = self.model(year=year,
@@ -40,6 +40,7 @@ class Experiment():
                                                                   age=age,
                                                                   date=date,
                                                                   sex=sex,
+                                                                  dow=dow,
                                                                   pos_item=pos_item,
                                                                   neg_item=neg_item,
                                                                   node_flag=True)
@@ -57,20 +58,20 @@ class Experiment():
         RMSE = 0
         with torch.no_grad():
             self.model.eval()
-            for year, u_id, age, date, sex, congestion, pos_item in self.test_dataloader:
+            for year, u_id, age, date, sex, dow, congestion, pos_item in self.test_dataloader:
                 year, u_id, pos_item = year.to(self.device), u_id.to(self.device), pos_item.to(self.device)
                 age, date, sex = age.to(self.device), date.to(self.device), sex.to(self.device)
-                congestion = congestion.to(self.device)
+                dow, congestion = dow.to(self.device), congestion.to(self.device)
 
                 u_embeds, pos_i_embeds, _ = self.model(year=year,
                                                        u_id=u_id,
                                                        age=age,
                                                        date=date,
                                                        sex=sex,
+                                                       dow=dow,
                                                        pos_item=pos_item,
                                                        neg_item=torch.empty(0),
                                                        node_flag=False)
-
                 gt_rank = pos_item[0].item()
                 pred_ratings = torch.mm(u_embeds, pos_i_embeds.T)
 

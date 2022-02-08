@@ -36,11 +36,12 @@ class NGCF(nn.Module):
         self.date_emb = nn.Embedding(num_dict['date'], self.emb_size)
         self.sex_emb = nn.Embedding(num_dict['sex'], self.emb_size)
         self.age_emb = nn.Embedding(num_dict['age'], self.emb_size)
+        self.day_emb = nn.Embedding(num_dict['dayofweek'], self.emb_size)
         self.item_embedding = nn.Embedding(self.n_item, self.emb_size)
         self.user_embedding = nn.Embedding(self.n_user, self.emb_size)
 
         self.user_lin = []
-        self.lin_1 = nn.Linear(in_features=self.emb_size*3, out_features=self.emb_size // 2, bias=True)
+        self.lin_1 = nn.Linear(in_features=self.emb_size*4, out_features=self.emb_size // 2, bias=True)
         self.lin_2 = nn.Linear(in_features=self.emb_size // 2, out_features=self.emb_size)
         self.user_lin.append(self.lin_1)
         self.user_lin.append(nn.LeakyReLU())
@@ -59,7 +60,7 @@ class NGCF(nn.Module):
 
     def set_layers(self):
 
-        initializer = nn.init.xavier_uniform_
+        initializer = nn.init.kaiming_uniform_
 
         # initial embedding layer
         initializer(self.user_embedding.weight)
@@ -102,14 +103,16 @@ class NGCF(nn.Module):
         drop = torch.sparse.FloatTensor(i, v, mat.shape).to(self.device)
         return drop
 
-    def forward(self, year, u_id, age, date, sex, pos_item, neg_item, node_flag):
+    def forward(self, year, u_id, age, date, sex, dow, pos_item, neg_item, node_flag):
         age_emb = self.age_emb(age[0])
         date_emb = self.date_emb(date[0])
         sex_emb = self.sex_emb(sex[0])
+        dow_emb = self.day_emb(dow[0])
         age_emb = torch.reshape(age_emb, (-1,))
         date_emb = torch.reshape(date_emb, (-1,))
         sex_emb = torch.reshape(sex_emb, (-1,))
-        feats = torch.cat((age_emb, date_emb, sex_emb), dim=0)
+        dow_emb = torch.reshape(dow_emb, (-1,))
+        feats = torch.cat((age_emb, date_emb, sex_emb, dow_emb), dim=0)
         user_mlp = self.user_lin(feats)
 
         year_idx = year.unique()[0] % 18

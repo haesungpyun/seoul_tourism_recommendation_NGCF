@@ -13,18 +13,20 @@ from parsers import args
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f'device: {device}')
-print('Current cuda device:', torch.cuda.current_device())
-print('Count of using GPUs:', torch.cuda.device_count())
+if torch.cuda.is_available():
+    print('Current cuda device:', torch.cuda.current_device())
+    print('Count of using GPUs:', torch.cuda.device_count())
 
-root_path = '../data'
-preprocess = Preprocess(root_dir=root_path, train_by_destination=False)
+root_dir = '../data'
+preprocess = Preprocess(root_dir=root_dir, train_by_destination=False)
 total_df, train_df, test_df = preprocess.split_train_test()
 
 num_dict = {'user': total_df['userid'].nunique(),
             'item': total_df['itemid'].nunique(),
             'sex': total_df['sex'].max() + 1,
             'age': total_df['age'].max() + 1,
-            'date': total_df['dateid'].max() + 1}
+            'date': total_df['dateid'].max() + 1,
+            'dayofweek': total_df['dayofweek'].max()+1}
 
 train_dataset = TourDataset(df=train_df,
                             total_df=total_df,
@@ -93,18 +95,19 @@ print(date_dict)
 
 
 dates = input("관광할 월-일을 입력하세요(ex 01 01):").split()
+dow = input("관광할 요일을 입력하세요(ex mon):")
 sex = input('관광객의 성별을 입력하세요(ex m):')
 age = input('관광객의 연령을 입력하세요(ex 25):')
 
-week = [['mon', 'tue', 'wed', 'thur', 'fri'], ['sat', 'sun']]
+
+week = ['mon', 'tue', 'wed', 'thur', 'fri', 'sat', 'sun']
 gender = ['f', 'm']
 if dates[0][0] =='1':
     date = dates[0] + dates[1]
 else:
     date = dates[0][1] + dates[1]
-
 sex = str(gender.index(sex))
-
+dow = week.index(dow)
 u_feats = age + sex + date
 
 u_id = user_dict[u_feats]
@@ -113,14 +116,13 @@ u_id = torch.LongTensor([u_id])
 date = torch.LongTensor([date])
 age = torch.LongTensor([int(age)])
 sex = torch.LongTensor([int(sex)])
-print(u_id, type(u_id))
-print(type(age), age)
-print(type(sex), sex)
+dow = torch.LongTensor([dow])
 u_embeds, _, _ = model(year=torch.LongTensor([0]),
                 u_id=u_id,
                 age=age,
                 date=date,
                 sex=sex,
+                dow=dow,
                 pos_item=torch.LongTensor([0]),
                 neg_item=torch.empty(0),
                 node_flag=False)
