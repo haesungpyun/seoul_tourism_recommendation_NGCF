@@ -51,11 +51,11 @@ matrix_generator = Matrix(total_df=total_df,
 
 lap_list = matrix_generator.create_matrix()
 
-model = NGCF(embed_size=64,
+model = NGCF(embed_size=args.embed_size,
              layer_size=[64, 64, 64],
-             node_dropout=0.2,
-             mess_dropout=[0.1, 0.1, 0.1],
-             mlp_ratio=0.5,
+             node_dropout=args.node_dropout,
+             mess_dropout=args.mess_dropout,
+             mlp_ratio=args.mlp_ratio,
              lap_list=lap_list,
              num_dict=num_dict,
              batch_size=args.batch_size,
@@ -98,7 +98,7 @@ age = input('관광객의 연령을 입력하세요(ex 25):')
 
 week = [['mon', 'tue', 'wed', 'thur', 'fri'], ['sat', 'sun']]
 gender = ['f', 'm']
-if dates[0][0] == 1:
+if dates[0][0] =='1':
     date = dates[0] + dates[1]
 else:
     date = dates[0][1] + dates[1]
