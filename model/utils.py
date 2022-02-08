@@ -60,7 +60,7 @@ class Preprocess(object):
         # ignore warnings
         np.warnings.filterwarnings('ignore')
         df_18 = total_df.loc[total_df['year'] == 18]
-        df_19 = total_df.loc[total_df['year'] == 19]
+        df_19 = total_df.loc[total_df['year'] == 19].sample(frac=0.3, replace=False)
 
         if train_by_destination:
             train_dataframe, test_dataframe, y_train, y_test = train_test_split(total_df, total_df['destination'],

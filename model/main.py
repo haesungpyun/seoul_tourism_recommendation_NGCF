@@ -13,9 +13,8 @@ from parsers import args
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f'device: {device}')
-if device == 'cuda':
-    print('Current cuda device:', torch.cuda.current_device())
-    print('Count of using GPUs:', torch.cuda.device_count())
+print('Current cuda device:', torch.cuda.current_device())
+print('Count of using GPUs:', torch.cuda.device_count())
 
 root_path = '../data'
 preprocess = Preprocess(root_dir=root_path, train_by_destination=False)
@@ -88,7 +87,7 @@ print('-------------------------------------------------------------------------
 user_dict = preprocess.user_dict
 item_dict = preprocess.item_dict
 date_dict = preprocess.date_dict
-print((user_dict))
+print(user_dict)
 print(item_dict)
 print(date_dict)
 
@@ -106,7 +105,7 @@ else:
 
 sex = str(gender.index(sex))
 
-u_feats = date + sex + age
+u_feats = age + sex + date
 
 u_id = user_dict[u_feats]
 date = date_dict[int(date)]
@@ -135,4 +134,4 @@ for i in range(100):
     recommend_des.append(list(item_dict.keys())[list(item_dict.values()).index(all_rank[i])])
 
 print(recommend_des)
-print(num_dict)
+
