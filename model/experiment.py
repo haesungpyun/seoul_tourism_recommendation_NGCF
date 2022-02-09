@@ -79,6 +79,7 @@ class Experiment():
 
                 # BPR
                 neg_i_embeds = pos_i_embeds[1:]
+                neg_i_embeds = torch.cat((neg_i_embeds, neg_i_embeds[:1]))
                 pos_i_embeds = pos_i_embeds[:1]
                 loss = self.criterion(u_embeds, pos_i_embeds, neg_i_embeds)
                 BPR += loss
