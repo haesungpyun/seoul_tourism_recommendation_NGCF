@@ -17,7 +17,8 @@ if torch.cuda.is_available():
     print('Current cuda device:', torch.cuda.current_device())
     print('Count of using GPUs:', torch.cuda.device_count())
 
-root_dir = '../data'
+#root_dir = '../../../LIG/Preprocessing/Datasets_v5.0/'
+root_dir = '../data/'
 preprocess = Preprocess(root_dir=root_dir, train_by_destination=False)
 total_df, train_df, test_df = preprocess.split_train_test()
 
@@ -81,7 +82,7 @@ train = Experiment(model=model,
 train.train()
 print('train ended')
 
-model_dir = os.path.join('./', 'NGCG.pth')
+model_dir = os.path.join('./', 'NGCF' + str(args.mlp_ratio) +'.pth')
 torch.save(model, model_dir)
 
 print('---------------------------------------------------------------------------------------------')
@@ -93,16 +94,11 @@ print('-------------------------------------------------------------------------
 user_dict = preprocess.user_dict
 item_dict = preprocess.item_dict
 date_dict = preprocess.date_dict
-print(user_dict)
-print(item_dict)
-print(date_dict)
-
 
 dates = input("관광할 월-일을 입력하세요(ex 01 01):").split()
 dow = input("관광할 요일을 입력하세요(ex mon):")
 sex = input('관광객의 성별을 입력하세요(ex m):')
 age = input('관광객의 연령을 입력하세요(ex 25):')
-
 
 week = ['mon', 'tue', 'wed', 'thur', 'fri', 'sat', 'sun']
 gender = ['f', 'm']

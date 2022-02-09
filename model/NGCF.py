@@ -69,6 +69,7 @@ class NGCF(nn.Module):
         initializer(self.sex_emb.weight)
         initializer(self.age_emb.weight)
         initializer(self.date_emb.weight)
+        initializer(self.day_emb.weight)
 
         weight_size_list = [self.emb_size] + self.weight_size
 

@@ -20,8 +20,8 @@ class Preprocess(object):
 
     def load_preprocess_data(self):
         root_dir = self.root_dir
-        path = os.path.join(root_dir, './Datasets_v5.0.txt')
-        df_raw = pd.read_csv(path, sep='|').sample(10000)
+        path = os.path.join(root_dir, 'Datasets_v5.0.txt')
+        df_raw = pd.read_csv(path, sep='|')
 
         # consider congestion as preference
         df_raw[['congestion_1', 'congestion_2']] = 1 / df_raw[['congestion_1', 'congestion_2']]
@@ -140,12 +140,16 @@ class TourDataset(Dataset):
 
         # self.items[index][0]: positive feedback
         # self.items[index][1]: negative feedback
+        # train: year, uid, a, d, s, w, pos, neg
+        # test:  year, uid, a, d, s, r, w, pos
         if self.train:
             return self.users[index][0], self.users[index][1], self.users[index][2], self.users[index][3], \
-                   self.users[index][4], self.users[index][5], self.items[index][0], self.items[index][1]
+                   self.users[index][4], self.users[index][5], \
+                   self.items[index][0], self.items[index][1]
         else:
             return self.users[index][0], self.users[index][1], self.users[index][2], self.users[index][3], \
-                   self.users[index][4], self.users[index][5], self.users[index][6], self.items[index]
+                   self.users[index][4], self.users[index][5], self.users[index][6],\
+                   self.items[index]
 
     def _negative_sampling(self):
         '''
@@ -172,19 +176,19 @@ class TourDataset(Dataset):
                                tmp['age'],
                                tmp['dateid'],
                                tmp['sex'],
+                               tmp[self.rating],
                                tmp['dayofweek'],
-                               tmp.loc[tmp[self.rating] >= quarter, 'itemid'],
-                               tmp[self.rating])
+                               tmp.loc[tmp[self.rating] >= quarter, 'itemid'])
 
             neg_items = np.setxor1d(all_destinations, tmp.loc[tmp[self.rating] >= quarter, 'itemid'])
 
-            for year, uid, a, d, s, w, iid, r in pos_item_set:
+            for year, uid, a, d, s, r, w, iid in pos_item_set:
                 tmp_negs = neg_items.copy()
                 # positive instance
                 item = []
                 if not self.train:
                     items_list.append(iid)
-                    users_list.append([year, uid, a, d, s, w, r])
+                    users_list.append([year, uid, a, d, s, r, w])
                 else:
                     item.append(iid)
 
@@ -196,7 +200,7 @@ class TourDataset(Dataset):
                 else:
                     items_list += negative_item.tolist()
                     for _ in range(ng_ratio):
-                        users_list.append([year, uid, a, d, s, w, r])
+                        users_list.append([year, uid, a, d, s, r, w])
 
                 if self.train:
                     items_list.append(item)
