@@ -173,7 +173,7 @@ class TourDataset(Dataset):
                                tmp['sex'],
                                tmp['dayofweek'],
                                tmp.loc[tmp[self.rating] >= quarter, 'itemid'],
-                               tmp['congestion_1'])
+                               tmp[self.rating])
 
             neg_items = np.setxor1d(all_destinations, tmp.loc[tmp[self.rating] >= quarter, 'itemid'])
 
