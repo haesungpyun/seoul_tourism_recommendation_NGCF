@@ -58,10 +58,10 @@ class Experiment():
         RMSE = 0
         with torch.no_grad():
             self.model.eval()
-            for year, u_id, age, date, sex, dow, congestion, pos_item in self.test_dataloader:
+            for year, u_id, age, date, sex, dow, rating, pos_item in self.test_dataloader:
                 year, u_id, pos_item = year.to(self.device), u_id.to(self.device), pos_item.to(self.device)
                 age, date, sex = age.to(self.device), date.to(self.device), sex.to(self.device)
-                dow, congestion = dow.to(self.device), congestion.to(self.device)
+                dow, rating = dow.to(self.device), rating.to(self.device)
 
                 u_embeds, pos_i_embeds, _ = self.model(year=year,
                                                        u_id=u_id,
@@ -76,7 +76,7 @@ class Experiment():
                 pred_ratings = torch.mm(u_embeds, pos_i_embeds.T)
 
                 # HR
-                _, pred_rank = torch.topk(pred_ratings[0], 5)
+                _, pred_rank = torch.topk(pred_ratings[0], 3)
                 recommends_HR = torch.take(pos_item, pred_rank).cpu().numpy().tolist()
                 HR.append(self.hit(gt_item=gt_rank, pred_items=recommends_HR))
                 # NDCG
@@ -86,7 +86,7 @@ class Experiment():
                 # RMSE
                 pred_rate = pred_ratings[0,0]
                 pred_rate = pred_rate.to(self.device)
-                RMSE += self.rmse(pred_rate, congestion)
+                RMSE += self.rmse(pred_rate, rating)
         return np.mean(HR), np.mean(NDCG), RMSE / len(self.test_dataloader)
 
 

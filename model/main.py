@@ -21,6 +21,7 @@ root_dir = '../data'
 preprocess = Preprocess(root_dir=root_dir, train_by_destination=False)
 total_df, train_df, test_df = preprocess.split_train_test()
 
+rating = 'visitor'
 num_dict = {'user': total_df['userid'].nunique(),
             'item': total_df['itemid'].nunique(),
             'sex': total_df['sex'].max() + 1,
@@ -30,7 +31,8 @@ num_dict = {'user': total_df['userid'].nunique(),
 
 train_dataset = TourDataset(df=train_df,
                             total_df=total_df,
-                            train=True)
+                            train=True,
+                            rating=rating)
 
 train_loader = DataLoader(dataset=train_dataset,
                           batch_size=args.batch_size,
@@ -39,7 +41,8 @@ train_loader = DataLoader(dataset=train_dataset,
 
 test_dataset = TourDataset(df=test_df,
                            total_df=total_df,
-                           train=False)
+                           train=False,
+                           rating=rating)
 
 test_loader = DataLoader(dataset=test_dataset,
                          batch_size=args.test_batch,
@@ -47,7 +50,8 @@ test_loader = DataLoader(dataset=test_dataset,
                          drop_last=True)
 
 matrix_generator = Matrix(total_df=total_df,
-                          cols=['year', 'userid', 'itemid', 'congestion_1'],
+                          cols=['year', 'userid', 'itemid', rating],
+                          rating=rating,
                           num_dict=num_dict,
                           device=device)
 

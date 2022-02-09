@@ -12,10 +12,12 @@ class Matrix(nn.Module):
 
     def __init__(self, total_df: pd.DataFrame,
                  cols: list,
+                 rating: str,
                  num_dict: dict,
                  device):
         super(Matrix, self).__init__()
         self.df = total_df[cols]
+        self.rating =rating
         self.device = device
         self.n_user = num_dict['user']
         self.n_item = num_dict['item']
@@ -29,7 +31,7 @@ class Matrix(nn.Module):
     def create_matrix(self):
         for year in self.df['year'].unique():
             df_tmp = self.df[self.df['year'].isin([year])]
-            self.R[df_tmp['userid'], df_tmp['itemid']] = df_tmp['congestion_1']
+            self.R[df_tmp['userid'], df_tmp['itemid']] = df_tmp[self.rating]
 
             # A = [[0, R],[R.T,0]]
             adj_mat = self.adj_mat.tolil()
