@@ -58,7 +58,7 @@ class Experiment():
         RMSE = 0
         with torch.no_grad():
             self.model.eval()
-            for year, u_id, age, date, sex, dow, rating, pos_item in self.test_dataloader:
+            for year, u_id, age, date, sex, rating, dow, pos_item in self.test_dataloader:
                 year, u_id, pos_item = year.to(self.device), u_id.to(self.device), pos_item.to(self.device)
                 age, date, sex = age.to(self.device), date.to(self.device), sex.to(self.device)
                 dow, rating = dow.to(self.device), rating.to(self.device)
