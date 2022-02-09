@@ -20,8 +20,8 @@ class Preprocess(object):
 
     def load_preprocess_data(self):
         root_dir = self.root_dir
-        path = os.path.join(root_dir, './Datasets_v5.0/Datasets_v5.0.txt')
-        df_raw = pd.read_csv(path, sep='|')
+        path = os.path.join(root_dir, './Datasets_v5.0.txt')
+        df_raw = pd.read_csv(path, sep='|').sample(10000)
 
         # consider congestion as preference
         df_raw[['congestion_1', 'congestion_2']] = 1 / df_raw[['congestion_1', 'congestion_2']]
@@ -89,8 +89,9 @@ class Preprocess(object):
 
         # ignore warnings
         np.warnings.filterwarnings('ignore')
-        df_18 = total_df.loc[total_df['year'] == '18']
-        df_19 = total_df.loc[total_df['year'] == '19'].sample(frac=0.3, replace=False)
+        total_df[['year', 'month-day']] = total_df[['year', 'month-day']].apply(np.int64)
+        df_18 = total_df.loc[total_df['year'] == 18]
+        df_19 = total_df.loc[total_df['year'] == 19].sample(frac=0.3, replace=False)
 
         if train_by_destination:
             train_dataframe, test_dataframe, y_train, y_test = train_test_split(total_df, total_df['destination'],
