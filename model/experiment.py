@@ -49,13 +49,15 @@ class Experiment():
                 loss.backward()
                 self.optimizer.step()
                 total_loss += loss
-            HR, NDCG, RMSE = self.eval()
-            print(f'epoch {epoch + 1}, epoch loss: {total_loss / len(self.train_dataloader)}, HR:{HR}, NDCG:{NDCG}, RMSE:{RMSE}, Run time:{datetime.now()-d1}')
+            BPR, HR, NDCG, RMSE = self.eval()
+            train_bpr = total_loss / len(self.train_dataloader)
+            print(f'epoch {epoch + 1}, Train BPR: {train_bpr}, Test BPR: {BPR}, HR:{HR}, NDCG:{NDCG}, RMSE:{RMSE}, Run time:{datetime.now()-d1}')
 
     def eval(self):
         NDCG = []
         HR = []
         RMSE = 0
+        BPR = 0
         with torch.no_grad():
             self.model.eval()
             for year, u_id, age, date, sex, rating, dow, pos_item in self.test_dataloader:
@@ -75,6 +77,11 @@ class Experiment():
                 gt_rank = pos_item[0].item()
                 pred_ratings = torch.mm(u_embeds, pos_i_embeds.T)
 
+                # BPR
+                neg_i_embeds = pos_i_embeds[1:]
+                pos_i_embeds = pos_i_embeds[:1]
+                loss = self.criterion(u_embeds, pos_i_embeds, neg_i_embeds)
+                BPR += loss
                 # HR
                 _, pred_rank = torch.topk(pred_ratings[0], 3)
                 recommends_HR = torch.take(pos_item, pred_rank).cpu().numpy().tolist()
@@ -87,7 +94,7 @@ class Experiment():
                 pred_rate = pred_ratings[0,0]
                 pred_rate = pred_rate.to(self.device)
                 RMSE += self.rmse(pred_rate, rating)
-        return np.mean(HR), np.mean(NDCG), RMSE / len(self.test_dataloader)
+        return (BPR / len(self.test_dataloader)), np.mean(HR), np.mean(NDCG), (RMSE / len(self.test_dataloader))
 
 
     def Ndcg(self, gt_item, pred_items):
