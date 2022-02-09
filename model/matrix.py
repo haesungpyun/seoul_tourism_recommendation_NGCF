@@ -17,7 +17,7 @@ class Matrix(nn.Module):
                  device):
         super(Matrix, self).__init__()
         self.df = total_df[cols]
-        self.rating =rating
+        self.rating = rating
         self.device = device
         self.n_user = num_dict['user']
         self.n_item = num_dict['item']
