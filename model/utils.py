@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import os
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import RobustScaler
+from sklearn.preprocessing import PowerTransformer
 
 
 class Preprocess(object):
@@ -21,7 +21,7 @@ class Preprocess(object):
     def load_preprocess_data(self):
         root_dir = self.root_dir
         path = os.path.join(root_dir, 'Datasets_v5.0.txt')
-        df_raw = pd.read_csv(path, sep='|')
+        df_raw = pd.read_csv(path, sep='|').sample(1000)
 
         # consider congestion as preference
         df_raw[['congestion_1', 'congestion_2']] = 1 / df_raw[['congestion_1', 'congestion_2']]
@@ -37,17 +37,25 @@ class Preprocess(object):
 
         # seperate year and month-day data to use as features
         df_raw['year'] = df_raw['date'].dt.strftime('%y')
-        df_raw['month-day'] = df_raw['date'].dt.strftime('%m%d')
+        df_raw['month'] = df_raw['date'].dt.strftime('%m')
+        df_raw['day'] = df_raw['date'].dt.strftime('%d')
+        df_raw[['year', 'month', 'day']] = df_raw[['year', 'month', 'day']].apply(np.int64)
+        print(df_raw[['year', 'month', 'day']].sample(1))
+        df_raw['month-day'] = pd.DataFrame(df_raw['month'].apply(str) + df_raw['day'].apply(str))
+
 
         # Robust scaler to transform data with many outliers to dense data
-        scaler = RobustScaler()
+        scaler = PowerTransformer()
         df_raw[['visitor', 'congestion_1', 'congestion_2']] =\
             pd.DataFrame(scaler.fit_transform(df_raw[['visitor', 'congestion_1', 'congestion_2']]))
 
         # shift data to eliminate negative values and to use as explicit feedback
-        df_raw['visitor'] = df_raw['visitor'] + df_raw['visitor'].min()
-        df_raw['congestion_1'] = df_raw['congestion_1'] + df_raw['congestion_1'].min()
-        df_raw['congestion_2'] = df_raw['congestion_2'] + df_raw['congestion_2'].min()
+        v_min = np.abs(df_raw['visitor'].min())
+        c1_min = np.abs(df_raw['congestion_1'].min())
+        c2_min = np.abs(df_raw['congestion_2'].min())
+        df_raw['visitor'] = df_raw['visitor'] + v_min
+        df_raw['congestion_1'] = df_raw['congestion_1'] + c1_min
+        df_raw['congestion_2'] = df_raw['congestion_2'] + c2_min
         return df_raw
 
     def map_userid(self):
@@ -89,7 +97,7 @@ class Preprocess(object):
 
         # ignore warnings
         np.warnings.filterwarnings('ignore')
-        total_df[['year', 'month-day']] = total_df[['year', 'month-day']].apply(np.int64)
+
         df_18 = total_df.loc[total_df['year'] == 18]
         df_19 = total_df.loc[total_df['year'] == 19].sample(frac=0.3, replace=False)
 
@@ -111,13 +119,13 @@ class TourDataset(Dataset):
                  df: pd.DataFrame,
                  total_df: pd.DataFrame,
                  train: bool,
-                 rating:str):
+                 rating_col:str):
         super(TourDataset, self).__init__()
 
         self.df = df
         self.total_df = total_df
         self.train = train
-        self.rating = rating
+        self.rating_col = rating_col
 
         self.users, self.items = self._negative_sampling()
         print(f'len users:{self.users.shape}')
@@ -140,15 +148,15 @@ class TourDataset(Dataset):
 
         # self.items[index][0]: positive feedback
         # self.items[index][1]: negative feedback
-        # train: year, uid, a, d, s, w, pos, neg
-        # test:  year, uid, a, d, s, r, w, pos
+        # train: year, uid, a, m, d, s, w, pos, neg
+        # test:  year, uid, a, m, d, s, w, r, pos
         if self.train:
             return self.users[index][0], self.users[index][1], self.users[index][2], self.users[index][3], \
-                   self.users[index][4], self.users[index][5], \
+                   self.users[index][4], self.users[index][5], self.users[index][6], \
                    self.items[index][0], self.items[index][1]
         else:
             return self.users[index][0], self.users[index][1], self.users[index][2], self.users[index][3], \
-                   self.users[index][4], self.users[index][5], self.users[index][6],\
+                   self.users[index][4], self.users[index][5], self.users[index][6], self.users[index][7], \
                    self.items[index]
 
     def _negative_sampling(self):
@@ -168,27 +176,29 @@ class TourDataset(Dataset):
         else:
             ng_ratio = 24
 
-        for i in df['userid'].unique():
-            tmp = df.loc[df['userid'].isin([i])]
-            quarter = tmp[self.rating].quantile(q=0.25)
+        for userid in df['userid'].unique():
+            tmp = df.loc[df['userid'].isin([userid])]
+            quarter = tmp[self.rating_col].quantile(q=0.25)
             pos_item_set = zip(tmp['year'],
                                tmp['userid'],
                                tmp['age'],
-                               tmp['dateid'],
+                               tmp['month'],
+                               tmp['day'],
                                tmp['sex'],
-                               tmp[self.rating],
                                tmp['dayofweek'],
-                               tmp.loc[tmp[self.rating] >= quarter, 'itemid'])
+                               tmp[self.rating_col],
+                               tmp.loc[tmp[self.rating_col] >= quarter, 'itemid'])
 
-            neg_items = np.setxor1d(all_destinations, tmp.loc[tmp[self.rating] >= quarter, 'itemid'])
+            neg_items = np.setxor1d(all_destinations, tmp.loc[tmp[self.rating_col] >= quarter, 'itemid'])
 
-            for year, uid, a, d, s, r, w, iid in pos_item_set:
+            for year, uid, a, m, d, s, w, r, iid in pos_item_set:
                 tmp_negs = neg_items.copy()
                 # positive instance
                 item = []
                 if not self.train:
                     items_list.append(iid)
-                    users_list.append([year, uid, a, d, s, r, w])
+                    users_list.append([year, uid, a, m, d, s, w, r])
+
                 else:
                     item.append(iid)
 
@@ -200,10 +210,10 @@ class TourDataset(Dataset):
                 else:
                     items_list += negative_item.tolist()
                     for _ in range(ng_ratio):
-                        users_list.append([year, uid, a, d, s, r, w])
+                        users_list.append([year, uid, a, m, d, s, w, r])
 
                 if self.train:
                     items_list.append(item)
-                    users_list.append([year, uid, a, d, s, w])
+                    users_list.append([year, uid, a, m, d, s, w])
         print('Sampling ended!')
         return torch.LongTensor(users_list), torch.LongTensor(items_list)

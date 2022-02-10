@@ -5,6 +5,7 @@ import numpy as np
 import torch.nn as nn
 from scipy.linalg import get_blas_funcs
 
+
 class Matrix(nn.Module):
     """
     Manage all operations according to Matrix creation
@@ -12,12 +13,12 @@ class Matrix(nn.Module):
 
     def __init__(self, total_df: pd.DataFrame,
                  cols: list,
-                 rating: str,
+                 rating_col: str,
                  num_dict: dict,
                  device):
         super(Matrix, self).__init__()
         self.df = total_df[cols]
-        self.rating = rating
+        self.rating_col = rating_col
         self.device = device
         self.n_user = num_dict['user']
         self.n_item = num_dict['item']
@@ -25,13 +26,13 @@ class Matrix(nn.Module):
         self.R = sp.dok_matrix((self.n_user, self.n_item), dtype=np.float32)
         self.adj_mat = sp.dok_matrix((self.n_user + self.n_item, self.n_user + self.n_item), dtype=np.float32)
         self.lap_list = []
-        for i in self.df['year'].unique():
+        for _ in self.df['year'].unique():
             self.lap_list.append([])
 
     def create_matrix(self):
         for year in self.df['year'].unique():
             df_tmp = self.df[self.df['year'].isin([year])]
-            self.R[df_tmp['userid'], df_tmp['itemid']] = df_tmp[self.rating]
+            self.R[df_tmp['userid'], df_tmp['itemid']] = df_tmp[self.rating_col]
 
             # A = [[0, R],[R.T,0]]
             adj_mat = self.adj_mat.tolil()
@@ -61,3 +62,18 @@ class Matrix(nn.Module):
         idxs = torch.LongTensor(np.mat([coo.row, coo.col]))
         vals = torch.from_numpy(coo.data.astype(np.float32))  # as_tensor보다 from_numpy가 빠름
         return torch.sparse.FloatTensor(idxs, vals, coo.shape)
+
+
+"""
+    # for implicit feedback
+    def create_matrix(self):
+        for user in self.df['userid'].unique():
+            df_user = self.df[self.df['userid'].isin([user])]
+            for year in df_user['year'].unique():
+                df_tmp = df_user[df_user['year'].isin([year])]
+
+                mean = df_tmp[self.rating].quantile(q=0.5)
+                df_tmp.loc[df_tmp[self.rating] <= mean, self.rating] = 0
+                df_tmp.loc[df_tmp[self.rating] > mean, self.rating] = 1
+                self.R[df_tmp['userid'], df_tmp['itemid']] = df_tmp[self.rating]
+"""
