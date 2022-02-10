@@ -21,8 +21,8 @@ if torch.cuda.is_available():
 # argparse dosen't support boolean type
 save_model = True if args.save_model == 'True' else False
 
-# root_dir = '../../../LIG/Preprocessing/Datasets_v5.0/'
-root_dir = '../data/'
+root_dir = '../../../LIG/Preprocessing/Datasets_v5.0/'
+#root_dir = '../data/'
 preprocess = Preprocess(root_dir=root_dir, train_by_destination=False)
 total_df, train_df, test_df = preprocess.split_train_test()
 
