@@ -6,15 +6,17 @@ import pickle
 from NGCF import NGCF
 from parsers import args
 
-def input_filterchar(userinfo:str):
-    str=""
+
+def input_filterchar(userinfo: str):
+    str = ""
     for token in userinfo:
-        if ord(token)<48 or ord(token)>57:
+        if ord(token) < 48 or ord(token) > 57:
             break
-        str+=token
+        str += token
     return int(str)
 
-if __name__ == '__main__' :
+
+if __name__ == '__main__':
     # check device
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f'device: {device}')
@@ -24,7 +26,7 @@ if __name__ == '__main__' :
         print('Current cuda device:', torch.cuda.current_device())
         print('Count of using GPUs:', torch.cuda.device_count())
 
-    FOLDER_PATH ='saved_model_data'
+    FOLDER_PATH = 'saved_model_data'
 
     print('---------------------Load Id Data---------------------')
     PATH = os.path.join(FOLDER_PATH, f'user_dict' + '.pkl')
@@ -70,7 +72,7 @@ if __name__ == '__main__' :
     num_list = ['첫', '두', '세', '네']
     week = ['월', '화', '수', '목', '금', '토', '일']
     gender = ['여', '남']
-    month_info = {1: 31, 2:28, 3:31, 4:30, 5:31, 6:30, 7:31, 8:31, 9:30, 10:31, 11:30, 12:31}
+    month_info = {1: 31, 2: 28, 3: 31, 4: 30, 5: 31, 6: 30, 7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31}
 
     print('---------------------------------------------------------------------------------------------')
     print('------------------------------------------HELP-----------------------------------------------')
@@ -94,7 +96,7 @@ if __name__ == '__main__' :
         age = input(f'{num_list[i]}번째 관광객의 연령을 입력하세요(ex 23):')
 
         sex = str(gender.index(sex))
-        age = str((int(age)//10)*10 + 5)
+        age = str((int(age) // 10) * 10 + 5)
         u_feats = age + sex + str(month.item()) + str(day.item())
         uid = user_dict[u_feats]
         uid = torch.LongTensor([uid])
@@ -114,7 +116,7 @@ if __name__ == '__main__' :
     total_user_info = torch.LongTensor(total_user_info)
     # user_info = [u_id, age, sex, month, day, dow]
     u_id, age, sex = total_user_info.T[0], total_user_info.T[1], total_user_info.T[2]
-    month, day, dow =  total_user_info.T[3], total_user_info.T[4], total_user_info.T[5]
+    month, day, dow = total_user_info.T[3], total_user_info.T[4], total_user_info.T[5]
 
     u_embeds, _, _ = model(year=torch.LongTensor([1]),
                            u_id=u_id,
@@ -129,12 +131,21 @@ if __name__ == '__main__' :
 
     all_u_emb, all_i_emb = model.all_users_emb, model.all_items_emb
     all_pred_ratings = torch.mm(u_embeds, all_i_emb.T)
-    _, all_rank = torch.topk(all_pred_ratings[0], int(rec_num))
+    _, all_rank = torch.topk(all_pred_ratings, int(rec_num))
 
     recommend_des = []
-
-    rec_num = input(f'{num_list[i]}번째 관광객이 추천 받을 관관지의 개수를 입력하세요(ex 10):')
-    for i in range(int(rec_num)):
+    n = 1
+    d = 1
+    for i in range(int(duration)*int(num)):
         des_id = list(item_dict.keys())[list(item_dict.values()).index(all_rank[i])]
-        recommend_des.append(np.array(df_id_name.loc[df_id_name['destination'] == des_id, 'destination_name']))
-    print(recommend_des)
+
+        print(f'--------------{n}번째 관광객의 {d}일째 추천 여행지 입니다.--------------')
+        print(np.array(df_id_name.loc[df_id_name['destination'] == des_id, 'destination_name']))
+
+        if n < int(num):
+            d += 1
+        else:
+            n += 1
+
+
+
