@@ -63,6 +63,7 @@ matrix_generator = Matrix(total_df=total_df,
                           device=device).to(device)
 lap_list = matrix_generator.create_matrix()
 
+
 model = NGCF(embed_size=args.embed_size,
              layer_size=[64, 64, 64],
              node_dropout=args.node_dropout,
