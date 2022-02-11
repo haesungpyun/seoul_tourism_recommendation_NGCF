@@ -139,7 +139,7 @@ if __name__ == '__main__':
     d = 0
     df_tmp = df_id_name
     for i in range(int(duration) * int(num)):
-        df_tmp = df_tmp.iloc[all_rank[i].tolist()]
+        user_df = df_tmp.iloc[all_rank[i].tolist()]
         df_tmp.loc[:, 'rating'] = all_rating[i].detach().numpy()
         if d < int(duration):
             d += 1
