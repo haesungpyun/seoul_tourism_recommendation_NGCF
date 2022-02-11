@@ -26,7 +26,7 @@ class Preprocess(object):
     def load_preprocess_data(self):
         root_dir = self.root_dir
         path = os.path.join(root_dir, 'Datasets_v5.0.txt')
-        df_raw = pd.read_csv(path, sep='|').sample(1000)
+        df_raw = pd.read_csv(path, sep='|')
 
         # consider congestion as preference
         df_raw[['congestion_1', 'congestion_2']] = 1 / df_raw[['congestion_1', 'congestion_2']]
