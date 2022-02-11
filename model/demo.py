@@ -58,14 +58,14 @@ if __name__ == '__main__':
                  num_dict=num_dict,
                  batch_size=args.batch_size,
                  device=device).to(device=device)
-    PATH = os.path.join(FOLDER_PATH, f'NGCF_dow_0.5_visitor_9' + '.pth')
+    PATH = os.path.join(FOLDER_PATH, f'NGCF_dow_0.1_visitor_0' + '.pth')
     model.load_state_dict(torch.load(PATH))
     model.eval()
     print('NGCF Model Loaded!')
 
     print('---------------------Load Destination Data---------------------')
-    # root_dir = '../../../LIG/Preprocessing/Datasets_v5.0/'
-    root_dir = '../data/'
+    root_dir = '../../../LIG/Preprocessing/Datasets_v5.0/'
+    #root_dir = '../data/'
     path = os.path.join(root_dir, 'destination_id_name.csv')
     df_id_name = pd.read_csv(path)
     df_id_name = df_id_name.sort_values(by='destination').reset_index().drop('index', axis=1)
@@ -77,7 +77,6 @@ if __name__ == '__main__':
     month_info = {1: 31, 2: 28, 3: 31, 4: 30, 5: 31, 6: 30, 7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31}
 
     print('---------------------------------------------------------------------------------------------')
-    print(user_dict.keys())
     num = input("관광객 수를 입력하세요(ex 2):")
     duration = input("관광 기간를 입력하세요(ex 7):")
     dates = input("관광할 시작 월-일-요일을 입력하세요(ex 01 01 수):").split()
@@ -112,6 +111,7 @@ if __name__ == '__main__':
 
     print('-----------------------------추천 관광지 산출 중...-----------------------------')
     total_user_info = torch.LongTensor(total_user_info)
+    total_user_info = total_user_info.to(device)
     print(total_user_info)
     # user_info = [u_id, age, sex, month, day, dow]
     u_id, age, sex = total_user_info.T[0], total_user_info.T[1], total_user_info.T[2]
@@ -148,9 +148,9 @@ if __name__ == '__main__':
 
         user_df = df_tmp.iloc[all_rank[i].tolist()]
         day_vis = user_df.copy()
-        user_df.loc[:, 'rating'] = all_rating[i].detach().numpy()
+        user_df.loc[:, 'rating'] = all_rating[i].detach().cpu().clone().numpy()
         day_vis.loc[:, str(d)] = 0
-        day_vis.loc[:, str(d)] += all_rating[i].detach().numpy()
+        day_vis.loc[:, str(d)] += all_rating[i].detach().cpu().clone().numpy()
 
         print(f'--------------{n}번째 관광객의 {d}일째 추천 여행지 입니다.--------------')
         print(user_df.iloc[:int(rec_num)].reset_index().drop('index', axis=1))
