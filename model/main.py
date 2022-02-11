@@ -60,8 +60,7 @@ matrix_generator = Matrix(total_df=total_df,
                           num_dict=num_dict,
                           folder_path=FOLDER_PATH,
                           save_data=save_data,
-                          device=device)
-
+                          device=device).to(device)
 lap_list = matrix_generator.create_matrix()
 
 model = NGCF(embed_size=args.embed_size,
