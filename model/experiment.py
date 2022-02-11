@@ -4,7 +4,7 @@ import torch.nn as nn
 import numpy as np
 from datetime import datetime
 
-class Experiment():
+class Experiment(nn.Module):
     def __init__(self,
                  model: nn.Module,
                  optimizer: torch.optim,
@@ -15,7 +15,7 @@ class Experiment():
                  epochs: int,
                  ks: int,
                  device):
-
+        super(Experiment, self).__init__()
         self.model = model
         self.optimizer = optimizer
         self.criterion = criterion

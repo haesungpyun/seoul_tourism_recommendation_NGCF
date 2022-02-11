@@ -87,7 +87,7 @@ train = Experiment(model=model,
                    test_dataloader=test_loader,
                    epochs=args.epoch,
                    ks=args.ks,
-                   device=device)
+                   device=device).to(device)
 train.train()
 print(f'Train ended! Total Run time:{datetime.now()-d1}')
 
