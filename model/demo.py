@@ -75,27 +75,22 @@ if __name__ == '__main__':
     month_info = {1: 31, 2: 28, 3: 31, 4: 30, 5: 31, 6: 30, 7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31}
 
     print('---------------------------------------------------------------------------------------------')
-    print('------------------------------------------HELP-----------------------------------------------')
-    print('월일 : 01 01 ~ 12 31')
-    print('성별 : f / m')
-    print('연령 : 5-9세이하 / 15-10~19 / 25-20~29 / 35-30~39 / 45-40~49 / 55-50~59 / 65-60~69 / 75-70세이상')
-    print('---------------------------------------------------------------------------------------------')
 
     num = input("관광객 수를 입력하세요(ex 2):")
     duration = input("관광 기간를 입력하세요(ex 7):")
     dates = input("관광할 시작 월-일-요일을 입력하세요(ex 01 01 수):").split()
     rec_num = input("추천 받을 관광지의 개수를 입력하세요(ex 10)")
 
-    month = torch.LongTensor([int(dates[0])])
-    day = torch.LongTensor([int(dates[1])])
-    dow = torch.LongTensor([week.index(dates[2])])
+    month = torch.LongTensor([int(dates[0])]).to(device)
+    day = torch.LongTensor([int(dates[1])]).to(device)
+    dow = torch.LongTensor([week.index(dates[2])]).to(device)
 
     total_user_info = []
     for i in range(int(num)):
         sex = input(f'{num_list[i]}번째 관광객의 성별을 입력하세요(ex 남/여):')
         age = input(f'{num_list[i]}번째 관광객의 연령을 입력하세요(ex 23):')
 
-        sex = str(gender.index(sex))
+        sex = str(gender.index(sex)).to(device)
         age = str((int(age) // 10) * 10 + 5)
         u_feats = age + sex + str(month.item()) + str(day.item())
         uid = user_dict[u_feats]
@@ -136,7 +131,7 @@ if __name__ == '__main__':
     recommend_des = []
     n = 1
     d = 1
-    for i in range(int(duration)*int(num)):
+    for i in range(int(duration) * int(num)):
         des_id = list(item_dict.keys())[list(item_dict.values()).index(all_rank[i])]
 
         print(f'--------------{n}번째 관광객의 {d}일째 추천 여행지 입니다.--------------')
@@ -146,6 +141,3 @@ if __name__ == '__main__':
             d += 1
         else:
             n += 1
-
-
-

@@ -75,8 +75,8 @@ model = NGCF(embed_size=args.embed_size,
              device=device).to(device=device)
 
 optimizer = optim.Adam(model.parameters(), lr=args.lr)
-criterion = BPR(weight_decay=0.025, batch_size=args.batch_size)
-test_criterion = BPR(weight_decay=0.025, batch_size=args.test_batch)
+criterion = BPR(weight_decay=0.025, batch_size=args.batch_size).to(device)
+test_criterion = BPR(weight_decay=0.025, batch_size=args.test_batch).to(device)
 
 d1 = datetime.now()
 train = Experiment(model=model,

@@ -116,7 +116,7 @@ class NGCF(nn.Module):
         user_mlp = self.user_lin(feats)
 
         self.user_embedding.weight.data[u_id] = \
-            feats.detach().cpu().clone() * (1 - self.mlp_ratio) + user_mlp.cpu().clone() * self.mlp_ratio
+            feats.detach().clone() * (1 - self.mlp_ratio) + user_mlp.clone() * self.mlp_ratio
 
         year_idx = year.unique()[0] % 18
         L = self.lap_list[year_idx].to(self.device)
