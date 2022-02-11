@@ -47,6 +47,7 @@ if __name__ == '__main__':
         lap_list = pickle.load(f)
     print('Laplacian Matrix Data Loaded!')
 
+
     print('---------------------Load Model---------------------')
     model = NGCF(embed_size=args.embed_size,
                  layer_size=[64, 64, 64],
