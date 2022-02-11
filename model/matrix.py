@@ -3,6 +3,8 @@ import torch
 import scipy.sparse as sp
 import numpy as np
 import torch.nn as nn
+import pickle
+import os
 from scipy.linalg import get_blas_funcs
 
 
@@ -15,10 +17,14 @@ class Matrix(nn.Module):
                  cols: list,
                  rating_col: str,
                  num_dict: dict,
+                 folder_path:str,
+                 save_data:bool,
                  device):
         super(Matrix, self).__init__()
         self.df = total_df[cols]
         self.rating_col = rating_col
+        self.folder_path = folder_path
+        self.save_data = save_data
         self.device = device
         self.n_user = num_dict['user']
         self.n_item = num_dict['item']
@@ -55,6 +61,12 @@ class Matrix(nn.Module):
             self.lap_list[year_idx] = self._convert_sp_mat_to_sp_tensor(adj_mat).to(self.device)
 
         print('Laplacian Matrix Created!')
+        if self.save_data:
+            MODEL_PATH = os.path.join(self.folder_path,
+                                      f'lap_list' + '.pkl')
+            with open(MODEL_PATH, 'wb') as f:
+                pickle.dump(self.lap_list, f)
+            print('Laplacian  data Saved!')
         return self.lap_list
 
     def _convert_sp_mat_to_sp_tensor(self, matrix_sp):

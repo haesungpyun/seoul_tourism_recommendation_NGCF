@@ -10,5 +10,6 @@ parser.add_argument('-emb','--embed_size',type=int,default=65,help='choose embed
 parser.add_argument('-mlp','--mlp_ratio',type=float,default=0.5,help='choose ration between embedding and mlp weight from user features')
 parser.add_argument('-n','--node_dropout',type=float,default=0.2,help='choose node dropout ratio')
 parser.add_argument('-m','--mess_dropout',type=list,default=[0.1,0.1,0.1],help='choose message dropout ratio')
-parser.add_argument('-s','--save_model',type=bool,default=True,help='choose message dropout ratio')
+parser.add_argument('-sm','--save_model',type=str,default='True',help='Save model')
+parser.add_argument('-sd','--save_data',type=str,default='True',help='Save user/item/laplacia data')
 args = parser.parse_args()

@@ -3,16 +3,21 @@ from torch.utils.data import Dataset
 import pandas as pd
 import numpy as np
 import os
+import pickle
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import PowerTransformer
 
 
 class Preprocess(object):
     def __init__(self, root_dir: str,
-                 train_by_destination: bool) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame):
+                 train_by_destination: bool,
+                 folder_path:str,
+                 save_data:bool) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame):
 
         self.root_dir = root_dir
         self.train_by_destination = train_by_destination
+        self.folder_path = folder_path
+        self.save_data = save_data
         self.df_raw = self.load_preprocess_data()
         self.user_dict = None
         self.item_dict = None
@@ -40,7 +45,6 @@ class Preprocess(object):
         df_raw['month'] = df_raw['date'].dt.strftime('%m')
         df_raw['day'] = df_raw['date'].dt.strftime('%d')
         df_raw[['year', 'month', 'day']] = df_raw[['year', 'month', 'day']].apply(np.int64)
-        print(df_raw[['year', 'month', 'day']].sample(1))
         df_raw['month-day'] = pd.DataFrame(df_raw['month'].apply(str) + df_raw['day'].apply(str))
 
 
@@ -71,24 +75,32 @@ class Preprocess(object):
             merged = pd.Series(df['age'].apply(str) + df['sex'].apply(str) + df['month-day'].apply(str))
             user_map = {item: i for i, item in enumerate(np.sort(merged.unique()))}
             item_map = {item: i for i, item in enumerate(np.sort(df['destination'].unique()))}
-            date_map = {item: i for i, item in enumerate(np.sort(df['month-day'].unique()))}
-            return merged, user_map, item_map, date_map
+            return merged, user_map, item_map
 
         vec_merge = np.vectorize(merge_cols)
-        merged, user_map, item_map, date_map = vec_merge()
+        merged, user_map, item_map = vec_merge()
 
         # map user Id to value in dataframe
-        def map_func(a, b, c):
-            return user_map[a], item_map[b], date_map[c]
+        def map_func(a, b):
+            return user_map[a], item_map[b]
 
         np.warnings.filterwarnings('ignore')
         vec_func = np.vectorize(map_func)
-        df.loc[:, 'userid'], df.loc[:, 'itemid'], df.loc[:, 'dateid'] =\
-            vec_func(merged, df['destination'], df['month-day'])
+        df.loc[:, 'userid'], df.loc[:, 'itemid'] = vec_func(merged, df['destination'])
 
         self.user_dict = user_map
         self.item_dict = item_map
-        self.date_dict = date_map
+
+        if self.save_data:
+            MODEL_PATH = os.path.join(self.folder_path,
+                                      f'user_dict' + '.pkl')
+            with open(MODEL_PATH, 'wb') as f:
+                pickle.dump(self.user_dict, f)
+            MODEL_PATH = os.path.join(self.folder_path,
+                                      f'item_dict' + '.pkl')
+            with open(MODEL_PATH, 'wb') as f:
+                pickle.dump(self.item_dict, f)
+            print('User, Item data Saved!')
         return df
 
     def split_train_test(self):

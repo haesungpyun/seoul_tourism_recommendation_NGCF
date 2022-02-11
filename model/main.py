@@ -1,9 +1,10 @@
-import torch
-from torch.utils.data import DataLoader
-import torch.optim as optim
-import pandas as pd
-import numpy as np
 import os
+import numpy as np
+import pandas as pd
+import torch
+import torch.optim as optim
+from torch.utils.data import DataLoader
+from datetime import datetime
 from utils import TourDataset
 from utils import Preprocess
 from matrix import Matrix
@@ -20,10 +21,15 @@ if torch.cuda.is_available():
 
 # argparse dosen't support boolean type
 save_model = True if args.save_model == 'True' else False
+save_data = True if args.save_data == 'True' else False
 
-root_dir = '../../../LIG/Preprocessing/Datasets_v5.0/'
-#root_dir = '../data/'
-preprocess = Preprocess(root_dir=root_dir, train_by_destination=False)
+FOLDER_PATH ='saved_model_data'
+if not os.path.exists(FOLDER_PATH):
+    os.mkdir(FOLDER_PATH)
+
+#root_dir = '../../../LIG/Preprocessing/Datasets_v5.0/'
+root_dir = '../data/'
+preprocess = Preprocess(root_dir=root_dir, train_by_destination=False, folder_path=FOLDER_PATH, save_data=save_data)
 total_df, train_df, test_df = preprocess.split_train_test()
 
 rating_col = 'visitor'
@@ -59,6 +65,8 @@ matrix_generator = Matrix(total_df=total_df,
                           cols=['year', 'userid', 'itemid', rating_col],
                           rating_col=rating_col,
                           num_dict=num_dict,
+                          folder_path=FOLDER_PATH,
+                          save_data=save_data,
                           device=device)
 
 lap_list = matrix_generator.create_matrix()
@@ -77,6 +85,7 @@ optimizer = optim.Adam(model.parameters(), lr=args.lr)
 criterion = BPR(weight_decay=0.025, batch_size=args.batch_size)
 test_criterion = BPR(weight_decay=0.025, batch_size=args.test_batch)
 
+d1 = datetime.now()
 train = Experiment(model=model,
                    optimizer=optimizer,
                    criterion=criterion,
@@ -87,16 +96,13 @@ train = Experiment(model=model,
                    ks=args.ks,
                    device=device)
 train.train()
-print('train ended')
+print(f'Train ended! Total Run time:{datetime.now()-d1}')
 
-FOLDER_PATH ='saved_model'
-if not os.path.exists(FOLDER_PATH):
-    os.mkdir(FOLDER_PATH)
 
 if save_model:
-    MODEL_PATH = os.path.join(FOLDER_PATH, f'NGCF_dow_{args.mlp_ration}_{rating_col}_{np.random.randint(10)}' + '.pth')
+    MODEL_PATH = os.path.join(FOLDER_PATH, f'NGCF_dow_{args.mlp_ratio}_{rating_col}_{np.random.randint(10)}' + '.pth')
     torch.save(model.state_dict(), MODEL_PATH)
-
+    print('Model saved!')
 
 print('---------------------------------------------------------------------------------------------')
 print('------------------------------------------HELP-----------------------------------------------')
@@ -107,29 +113,29 @@ print('-------------------------------------------------------------------------
 user_dict = preprocess.user_dict
 item_dict = preprocess.item_dict
 date_dict = preprocess.date_dict
-print(user_dict)
-print(item_dict)
+print(user_dict.keys())
 
-week = ['mon', 'tue', 'wed', 'thur', 'fri', 'sat', 'sun']
-gender = ['f', 'm']
+week = ['월', '화', '수', '목', '금', '토', '일']
+gender = ['여', '남']
 # root_dir = '../../../LIG/Preprocessing/Datasets_v5.0/'
 root_dir = '../data/'
 path = os.path.join(root_dir, 'destination_id_name.csv')
 df_id_name = pd.read_csv(path)
 
 num = input("관광객 수를 입력하세요(ex 2):")
+num_list = ['첫', '두', '세', '네']
 
 for i in range(int(num)):
-    dates = input("관광할 월-일을 입력하세요(ex 01 01):").split()
-    dow = input("관광할 요일을 입력하세요(ex mon):")
-    sex = input('관광객의 성별을 입력하세요(ex m):')
-    age = input('관광객의 연령을 입력하세요(ex 25):')
-    rec_num = input('추천 받을 관관지의 개수를 입력하세요(ex 10):')
+    dates = input(f"{num_list[i]}번째 관광객이 관광할 월-일-요일을 입력하세요(ex 01 01 수):").split()
+    sex = input(f'{num_list[i]}번째 관광객의 성별을 입력하세요(ex 남/여):')
+    age = input(f'{num_list[i]}번째 관광객의 연령을 입력하세요(ex 23):')
+    rec_num = input(f'{num_list[i]}번째 관광객이 추천 받을 관관지의 개수를 입력하세요(ex 10):')
 
     month = int(dates[0])
     day = int(dates[1])
+    dow = week.index(dates[2])
     sex = str(gender.index(sex))
-    dow = week.index(dow)
+    age = str((int(age)//10)*10 + 5)
 
     u_feats = age + sex + str(month) + str(day)
 
@@ -159,6 +165,5 @@ for i in range(int(num)):
 
     for i in range(int(rec_num)):
         des_id = list(item_dict.keys())[list(item_dict.values()).index(all_rank[i])]
-        recommend_des.append(df_id_name.loc[df_id_name['destination'] == des_id])
-
+        recommend_des.append(np.array(df_id_name.loc[df_id_name['destination'] == des_id, 'destination_name']))
     print(recommend_des)
