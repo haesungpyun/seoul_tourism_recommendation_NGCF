@@ -40,7 +40,7 @@ class NGCF(nn.Module):
         self.dow_emb = nn.Embedding(num_dict['dayofweek'], self.emb_size//5)
         self.item_embedding = nn.Embedding(self.n_item, self.emb_size)
         self.user_embedding = nn.Embedding(self.n_user, self.emb_size)
-        
+        '''
         self.user_lin = []
         self.lin_1 = nn.Linear(in_features=self.emb_size, out_features=self.emb_size // 2, bias=True)
         self.lin_2 = nn.Linear(in_features=self.emb_size // 2, out_features=self.emb_size)
@@ -49,7 +49,7 @@ class NGCF(nn.Module):
         self.user_lin.append(self.lin_2)
         self.user_lin.append(nn.LeakyReLU())
         self.user_lin = nn.Sequential(*self.user_lin)
-        
+        '''
         self.w1_list = []
         self.w2_list = []
         self.node_dropout_list = []
@@ -113,9 +113,10 @@ class NGCF(nn.Module):
         sex_emb = self.sex_emb(sex)
         dow_emb = self.dow_emb(dow)
         feats = torch.cat((age_emb, month_emb, day_emb, sex_emb, dow_emb), dim=1)
-        user_mlp = self.user_lin(feats)
+        #user_mlp = self.user_lin(feats)
 
-        self.user_embedding.weight.data[u_id] =  feats.detach().clone()* (1 - self.mlp_ratio) + user_mlp.clone() * self.mlp_ratio
+        self.user_embedding.weight.data[u_id] =  feats.detach().clone()
+        #* (1 - self.mlp_ratio) + user_mlp.clone() * self.mlp_ratio
 
         year_idx = year.unique()[0] % 18
         L = self.lap_list[year_idx].to(self.device)
