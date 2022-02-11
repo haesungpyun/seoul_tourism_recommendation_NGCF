@@ -66,7 +66,7 @@ class Matrix(nn.Module):
                                       f'lap_list' + '.pkl')
             with open(PATH, 'wb') as f:
                 pickle.dump(self.lap_list, f)
-            print('Laplacian  data Saved!')
+            print('Laplacian data Saved!')
         return self.lap_list
 
     def _convert_sp_mat_to_sp_tensor(self, matrix_sp):
