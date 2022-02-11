@@ -139,14 +139,19 @@ if __name__ == '__main__':
     d = 0
     df_tmp = df_id_name
     for i in range(int(duration) * int(num)):
-        user_df = df_tmp.iloc[all_rank[i].tolist()]
-        df_tmp.loc[:, 'rating'] = all_rating[i].detach().numpy()
         if d < int(duration):
             d += 1
         else:
             n += 1
             d = 1
+
+        user_df = df_tmp.iloc[all_rank[i].tolist()]
+        day_vis = user_df.copy()
+        user_df.loc[:, 'rating'] = all_rating[i].detach().numpy()
+        day_vis.loc[:, str(d)] = 0
+        day_vis.loc[:, str(d)] += all_rating[i].detach().numpy()
+
         print(f'--------------{n}번째 관광객의 {d}일째 추천 여행지 입니다.--------------')
-        print(df_tmp.iloc[:int(rec_num)].reset_index().drop('index', axis=1))
+        print(user_df.iloc[:int(rec_num)].reset_index().drop('index', axis=1))
 
 
