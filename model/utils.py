@@ -92,15 +92,14 @@ class Preprocess(object):
         self.item_dict = item_map
 
         if self.save_data:
-            MODEL_PATH = os.path.join(self.folder_path,
-                                      f'user_dict' + '.pkl')
-            with open(MODEL_PATH, 'wb') as f:
+            PATH = os.path.join(self.folder_path, f'user_dict' + '.pkl')
+            with open(PATH, 'wb') as f:
                 pickle.dump(self.user_dict, f)
-            MODEL_PATH = os.path.join(self.folder_path,
-                                      f'item_dict' + '.pkl')
-            with open(MODEL_PATH, 'wb') as f:
+            PATH = os.path.join(self.folder_path, f'item_dict' + '.pkl')
+            with open(PATH, 'wb') as f:
                 pickle.dump(self.item_dict, f)
             print('User, Item data Saved!')
+
         return df
 
     def split_train_test(self):
@@ -123,7 +122,20 @@ class Preprocess(object):
             test_dataframe = df_19
 
         print(f"len(total): {len(total_df)}, len(train): {len(train_dataframe)}, len(test): {len(test_dataframe)}")
-        return total_df, train_dataframe, test_dataframe,
+
+        num_dict = {'user': total_df['userid'].nunique(),
+                    'item': total_df['itemid'].nunique(),
+                    'sex': total_df['sex'].max() + 1,
+                    'age': total_df['age'].max() + 1,
+                    'month': total_df['month'].max() + 1,
+                    'day': total_df['day'].max() + 1,
+                    'dayofweek': total_df['dayofweek'].max() + 1}
+
+        if self.save_data:
+            PATH = os.path.join(self.folder_path, f'num_dict' + '.pkl')
+            with open(PATH, 'wb') as f:
+                pickle.dump(num_dict, f)
+        return total_df, train_dataframe, test_dataframe, num_dict
 
 
 class TourDataset(Dataset):

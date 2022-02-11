@@ -62,9 +62,9 @@ class Matrix(nn.Module):
 
         print('Laplacian Matrix Created!')
         if self.save_data:
-            MODEL_PATH = os.path.join(self.folder_path,
+            PATH = os.path.join(self.folder_path,
                                       f'lap_list' + '.pkl')
-            with open(MODEL_PATH, 'wb') as f:
+            with open(PATH, 'wb') as f:
                 pickle.dump(self.lap_list, f)
             print('Laplacian  data Saved!')
         return self.lap_list
