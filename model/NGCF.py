@@ -50,6 +50,7 @@ class NGCF(nn.Module):
         self.user_lin.append(nn.LeakyReLU())
         self.user_lin = nn.Sequential(*self.user_lin)
         '''
+
         self.w1_list = []
         self.w2_list = []
         self.node_dropout_list = []

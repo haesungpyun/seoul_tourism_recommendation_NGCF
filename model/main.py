@@ -41,7 +41,7 @@ train_dataset = TourDataset(df=train_df,
 
 train_loader = DataLoader(dataset=train_dataset,
                           batch_size=args.batch_size,
-                          shuffle=False,
+                          shuffle=True,
                           drop_last=True)
 
 test_dataset = TourDataset(df=test_df,
@@ -51,7 +51,7 @@ test_dataset = TourDataset(df=test_df,
 
 test_loader = DataLoader(dataset=test_dataset,
                          batch_size=args.test_batch,
-                         shuffle=False,
+                         shuffle=True,
                          drop_last=True)
 
 matrix_generator = Matrix(total_df=total_df,
