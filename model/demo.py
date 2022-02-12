@@ -5,6 +5,7 @@ import torch
 import pickle
 from NGCF import NGCF
 from parsers import args
+import io
 
 
 def input_filterchar(userinfo: str):
@@ -14,6 +15,12 @@ def input_filterchar(userinfo: str):
             break
         str += token
     return int(str)
+
+class CPU_Unpickler(pickle.Unpickler):
+    def find_class(self, module, name):
+        if module == 'torch.storage' and name == '_load_from_bytes':
+            return lambda b: torch.load(io.BytesIO(b), map_location='cpu')
+        else: return super().find_class(module, name)
 
 
 if __name__ == '__main__':
@@ -31,20 +38,20 @@ if __name__ == '__main__':
     print('---------------------Load Id Data---------------------')
     PATH = os.path.join(FOLDER_PATH, f'user_dict' + '.pkl')
     with open(PATH, 'rb') as f:
-        user_dict = pickle.load(f)
+        user_dict = CPU_Unpickler(f).load()
     PATH = os.path.join(FOLDER_PATH, f'item_dict' + '.pkl')
     with open(PATH, 'rb') as f:
-        item_dict = pickle.load(f)
+        item_dict = CPU_Unpickler(f).load()
     PATH = os.path.join(FOLDER_PATH, f'num_dict' + '.pkl')
     with open(PATH, 'rb') as f:
-        num_dict = pickle.load(f)
+        num_dict = CPU_Unpickler(f).load()
         print(num_dict)
     print('User Id, Item Id, Number Data Loaded!')
 
     print('---------------------Load Lapliacian Data---------------------')
     PATH = os.path.join(FOLDER_PATH, f'lap_list' + '.pkl')
     with open(PATH, 'rb') as f:
-        lap_list = pickle.load(f)
+        lap_list = CPU_Unpickler(f).load()
     print('Laplacian Matrix Data Loaded!')
 
 
@@ -59,13 +66,13 @@ if __name__ == '__main__':
                  batch_size=args.batch_size,
                  device=device).to(device=device)
     PATH = os.path.join(FOLDER_PATH, f'NGCF_dow_0.1_visitor_0' + '.pth')
-    model.load_state_dict(torch.load(PATH))
+    model.load_state_dict(torch.load(PATH, map_location=device))
     model.eval()
     print('NGCF Model Loaded!')
 
     print('---------------------Load Destination Data---------------------')
-    root_dir = '../../../LIG/Preprocessing/Datasets_v5.0/'
-    #root_dir = '../data/'
+    #root_dir = '../../../LIG/Preprocessing/Datasets_v5.0/'
+    root_dir = '../data/'
     path = os.path.join(root_dir, 'destination_id_name.csv')
     df_id_name = pd.read_csv(path)
     df_id_name = df_id_name.sort_values(by='destination').reset_index().drop('index', axis=1)
@@ -90,34 +97,45 @@ if __name__ == '__main__':
     for i in range(int(num)):
         sex = input(f'{num_list[i]}번째 관광객의 성별을 입력하세요(ex 남/여):')
         age = input(f'{num_list[i]}번째 관광객의 연령을 입력하세요(ex 23):')
+        sex = int(gender.index(sex))
+        age = ((int(age) // 10) * 10 + 5)
 
-        sex = str(gender.index(sex))
-        age = str((int(age) // 10) * 10 + 5)
-        u_feats = age + sex + str(month.item()) + str(day.item())
-        uid = user_dict[u_feats]
-        uid = torch.LongTensor([uid])
-        age = torch.LongTensor([int(age)])
-        sex = torch.LongTensor([int(sex)])
-
+        day_tmp = day - 1
+        month_tmp = month.detach().clone()
+        print(id(month))
+        print(id(month_tmp))
         for length in range(int(duration)):
-            user_info = [uid, age, sex]
-            day_tmp = day + length
             dow_tmp = dow + length
             dow_tmp = dow_tmp % 7
-            if day > month_info[int(dates[0])]:
-                month += 1
-            user_info += [month, day_tmp, dow_tmp]
+            day_tmp = day_tmp + 1
+            print('if before',month_tmp)
+            if day_tmp > month_info[month_tmp.item()]:
+                day_tmp = day_tmp % month_info[month_tmp.item()]
+                month_tmp += 1
+            print()
+            print('if after', month_tmp, str(month_tmp.item()))
+            u_feats = str(age) + str(sex) + str(month_tmp.item()) + str(day_tmp.item())
+
+            print(u_feats)
+
+            uid = user_dict[u_feats]
+            uid = torch.LongTensor([uid])
+
+            user_info = [uid, age, sex, month_tmp, day_tmp, dow_tmp]
+            print(user_info)
             total_user_info.append(user_info)
 
     print('-----------------------------추천 관광지 산출 중...-----------------------------')
+    print(total_user_info)
     total_user_info = torch.LongTensor(total_user_info)
+    print(total_user_info)
     total_user_info = total_user_info.to(device)
     print(total_user_info)
     # user_info = [u_id, age, sex, month, day, dow]
     u_id, age, sex = total_user_info.T[0], total_user_info.T[1], total_user_info.T[2]
     month, day, dow = total_user_info.T[3], total_user_info.T[4], total_user_info.T[5]
 
-    u_embeds, _, _ = model(year=torch.LongTensor([1]),
+    u_embeds, _, _ = model(year=torch.LongTensor([0]),
                            u_id=u_id,
                            age=age,
                            month=month,
@@ -130,15 +148,18 @@ if __name__ == '__main__':
 
     all_u_emb, all_i_emb = model.all_users_emb, model.all_items_emb
     all_pred_ratings = torch.mm(u_embeds, all_i_emb.T)
+    """
+    print(u_embeds.shape, u_embeds)
+    print(all_i_emb.shape, all_i_emb)
+    print(all_pred_ratings.shape, all_pred_ratings)
+    """
     all_rating, all_rank = torch.topk(all_pred_ratings, 100)
-
-    print(all_rating, all_rank)
-    all_zip = zip(all_rating, all_rank)
-    # 11 29 1 25 / 11 29 0 65 / 11 29 0 15
+    #print(all_rating, all_rank)
     recommend_des = []
     n = 1
     d = 0
     df_tmp = df_id_name
+    np.warnings.filterwarnings('ignore')
     for i in range(int(duration) * int(num)):
         if d < int(duration):
             d += 1
@@ -152,7 +173,7 @@ if __name__ == '__main__':
         day_vis.loc[:, str(d)] = 0
         day_vis.loc[:, str(d)] += all_rating[i].detach().cpu().clone().numpy()
 
-        print(f'--------------{n}번째 관광객의 {d}일째 추천 여행지 입니다.--------------')
+        print(f'--------------{n}번째 관광객의 {d}일째 추천 여행지입니다.--------------')
         print(user_df.iloc[:int(rec_num)].reset_index().drop('index', axis=1))
 
 
