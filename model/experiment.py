@@ -72,8 +72,7 @@ class Experiment(nn.Module):
                                                        node_flag=False)
                 gt_rank = pos_item[0].item()
                 pred_ratings = torch.mm(u_embeds, pos_i_embeds.T)
-                print('pos_i',pos_i_embeds)
-                print('pred_ratings', pred_ratings)
+
                 # BPR
                 neg_i_embeds = pos_i_embeds[1:]
                 neg_i_embeds = torch.cat((neg_i_embeds, neg_i_embeds[:1]))
