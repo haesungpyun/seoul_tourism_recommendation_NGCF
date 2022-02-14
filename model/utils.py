@@ -208,7 +208,7 @@ class TourDataset(Dataset):
             pos_items = tmp.loc[tmp[self.rating_col] >= quarter, 'itemid']
             neg_items = np.setxor1d(all_destinations, pos_items)
             neg_idx = np.setxor1d(tmp.index, pos_items.index)
-            tmp.iloc[neg_idx][self.rating_col] = 0
+            tmp.loc[neg_idx][self.rating_col] = 0
             for year, uid, w, r, iid in pos_item_set:
                 tmp_negs = neg_items.copy()
                 # positive instance
