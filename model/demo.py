@@ -137,10 +137,6 @@ if __name__ == '__main__':
 
     u_embeds, _, _ = model(year=torch.LongTensor([0]),
                            u_id=u_id,
-                           age=age,
-                           month=month,
-                           day=day,
-                           sex=sex,
                            dow=dow,
                            pos_item=torch.LongTensor([0]),
                            neg_item=torch.empty(0),

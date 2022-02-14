@@ -21,7 +21,7 @@ class Preprocess(object):
         self.df_raw = self.load_preprocess_data()
         self.user_dict = None
         self.item_dict = None
-        self.date_dict = None
+        self.num_dict = None
 
     def load_preprocess_data(self):
         root_dir = self.root_dir
@@ -122,7 +122,7 @@ class Preprocess(object):
 
         print(f"len(total): {len(total_df)}, len(train): {len(train_dataframe)}, len(test): {len(test_dataframe)}")
 
-        num_dict = {'user': total_df['userid'].nunique(),
+        self.num_dict = {'user': total_df['userid'].nunique(),
                     'item': total_df['itemid'].nunique(),
                     'sex': total_df['sex'].max() + 1,
                     'age': total_df['age'].max() + 1,
@@ -133,8 +133,8 @@ class Preprocess(object):
         if self.save_data:
             PATH = os.path.join(self.folder_path, f'num_dict' + '.pkl')
             with open(PATH, 'wb') as f:
-                pickle.dump(num_dict, f)
-        return total_df, train_dataframe, test_dataframe, num_dict
+                pickle.dump(self.num_dict, f)
+        return total_df, train_dataframe, test_dataframe, self.num_dict
 
 
 class TourDataset(Dataset):
@@ -205,9 +205,10 @@ class TourDataset(Dataset):
                                tmp['dayofweek'],
                                tmp[self.rating_col],
                                tmp.loc[tmp[self.rating_col] >= quarter, 'itemid'])
-
-            neg_items = np.setxor1d(all_destinations, tmp.loc[tmp[self.rating_col] >= quarter, 'itemid'])
-
+            pos_items = tmp.loc[tmp[self.rating_col] >= quarter, 'itemid']
+            neg_items = np.setxor1d(all_destinations, pos_items)
+            neg_idx = np.setxor1d(tmp.index, pos_items.index)
+            tmp.iloc[neg_idx][self.rating_col] = 0
             for year, uid, w, r, iid in pos_item_set:
                 tmp_negs = neg_items.copy()
                 # positive instance
