@@ -44,9 +44,8 @@ class Preprocess(object):
         df_raw['year'] = df_raw['date'].dt.strftime('%y')
         df_raw['month'] = df_raw['date'].dt.strftime('%m')
         df_raw['day'] = df_raw['date'].dt.strftime('%d')
-        df_raw[['year', 'month', 'day']] = df_raw[['year', 'month', 'day']].apply(np.int64)
         df_raw['month-day'] = pd.DataFrame(df_raw['month'].apply(str) + df_raw['day'].apply(str))
-
+        df_raw[['year', 'month', 'day']] = df_raw[['year', 'month', 'day']].apply(np.int64)
 
         # Robust scaler to transform data with many outliers to dense data
         scaler = PowerTransformer()
@@ -68,7 +67,7 @@ class Preprocess(object):
         if train_by_destination:
             df = self.df_raw
         else:
-            df = self.df_raw.loc[self.df_raw['year'] != '20']
+            df = self.df_raw.loc[self.df_raw['year'] != 20]
 
         # use age, sex, date as user Id
         def merge_cols():
@@ -172,15 +171,13 @@ class TourDataset(Dataset):
 
         # self.items[index][0]: positive feedback
         # self.items[index][1]: negative feedback
-        # train: year, uid, a, m, d, s, w, pos, neg
-        # test:  year, uid, a, m, d, s, w, r, pos
+        # train: year, uid, w, pos, neg
+        # test:  year, uid, w, r, pos
         if self.train:
-            return self.users[index][0], self.users[index][1], self.users[index][2], self.users[index][3], \
-                   self.users[index][4], self.users[index][5], self.users[index][6], \
+            return self.users[index][0], self.users[index][1],  self.users[index][2], \
                    self.items[index][0], self.items[index][1]
         else:
             return self.users[index][0], self.users[index][1], self.users[index][2], self.users[index][3], \
-                   self.users[index][4], self.users[index][5], self.users[index][6], self.users[index][7], \
                    self.items[index]
 
     def _negative_sampling(self):
@@ -205,23 +202,19 @@ class TourDataset(Dataset):
             quarter = tmp[self.rating_col].quantile(q=0.25)
             pos_item_set = zip(tmp['year'],
                                tmp['userid'],
-                               tmp['age'],
-                               tmp['month'],
-                               tmp['day'],
-                               tmp['sex'],
                                tmp['dayofweek'],
                                tmp[self.rating_col],
                                tmp.loc[tmp[self.rating_col] >= quarter, 'itemid'])
 
             neg_items = np.setxor1d(all_destinations, tmp.loc[tmp[self.rating_col] >= quarter, 'itemid'])
 
-            for year, uid, a, m, d, s, w, r, iid in pos_item_set:
+            for year, uid, w, r, iid in pos_item_set:
                 tmp_negs = neg_items.copy()
                 # positive instance
                 item = []
                 if not self.train:
                     items_list.append(iid)
-                    users_list.append([year, uid, a, m, d, s, w, r])
+                    users_list.append([year, uid, w, r])
 
                 else:
                     item.append(iid)
@@ -234,10 +227,10 @@ class TourDataset(Dataset):
                 else:
                     items_list += negative_item.tolist()
                     for _ in range(ng_ratio):
-                        users_list.append([year, uid, a, m, d, s, w, r])
+                        users_list.append([year, uid, w, r])
 
                 if self.train:
                     items_list.append(item)
-                    users_list.append([year, uid, a, m, d, s, w])
+                    users_list.append([year, uid, w])
         print('Sampling ended!')
         return torch.LongTensor(users_list), torch.LongTensor(items_list)

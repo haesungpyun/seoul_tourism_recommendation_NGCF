@@ -83,8 +83,15 @@ class Matrix(nn.Module):
             for year in df_user['year'].unique():
                 df_tmp = df_user[df_user['year'].isin([year])]
 
-                mean = df_tmp[self.rating].quantile(q=0.5)
-                df_tmp.loc[df_tmp[self.rating] <= mean, self.rating] = 0
-                df_tmp.loc[df_tmp[self.rating] > mean, self.rating] = 1
-                self.R[df_tmp['userid'], df_tmp['itemid']] = df_tmp[self.rating]
+                mean = df_tmp[self.rating_col].quantile(q=0.25)
+                df_tmp.loc[df_tmp[self.rating_col] <= mean, self.rating_col] = 0
+                df_tmp.loc[df_tmp[self.rating_col] > mean, self.rating_col] = 1
+                self.R[df_tmp['userid'], df_tmp['itemid']] = df_tmp[self.rating_col]
+"""
+"""
+    # for explicit feedback
+    def create_matrix(self):
+        for year in self.df['year'].unique():
+            df_tmp = self.df[self.df['year'].isin([year])]
+            self.R[df_tmp['userid'], df_tmp['itemid']] = df_tmp[self.rating_col]
 """

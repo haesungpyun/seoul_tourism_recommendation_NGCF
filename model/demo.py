@@ -65,7 +65,7 @@ if __name__ == '__main__':
                  num_dict=num_dict,
                  batch_size=args.batch_size,
                  device=device).to(device=device)
-    PATH = os.path.join(FOLDER_PATH, f'NGCF_dow_0.1_visitor_0' + '.pth')
+    PATH = os.path.join(FOLDER_PATH, f'NGCF_dow_0.0_visitor_6' + '.pth')
     model.load_state_dict(torch.load(PATH, map_location=device))
     model.eval()
     print('NGCF Model Loaded!')
@@ -101,7 +101,7 @@ if __name__ == '__main__':
         age = ((int(age) // 10) * 10 + 5)
 
         day_tmp = day - 1
-        month_tmp = month.detach().clone()
+        month_tmp = month.item()
         print(id(month))
         print(id(month_tmp))
         for length in range(int(duration)):
@@ -109,12 +109,12 @@ if __name__ == '__main__':
             dow_tmp = dow_tmp % 7
             day_tmp = day_tmp + 1
             print('if before',month_tmp)
-            if day_tmp > month_info[month_tmp.item()]:
-                day_tmp = day_tmp % month_info[month_tmp.item()]
+            if day_tmp > month_info[month_tmp]:
+                day_tmp = day_tmp % month_info[month_tmp]
                 month_tmp += 1
             print()
-            print('if after', month_tmp, str(month_tmp.item()))
-            u_feats = str(age) + str(sex) + str(month_tmp.item()) + str(day_tmp.item())
+            print('if after', month_tmp, str(month_tmp))
+            u_feats = str(age) + str(sex) + str(month_tmp) + str(day_tmp.item())
 
             print(u_feats)
 
@@ -148,17 +148,12 @@ if __name__ == '__main__':
 
     all_u_emb, all_i_emb = model.all_users_emb, model.all_items_emb
     all_pred_ratings = torch.mm(u_embeds, all_i_emb.T)
-    """
-    print(u_embeds.shape, u_embeds)
-    print(all_i_emb.shape, all_i_emb)
-    print(all_pred_ratings.shape, all_pred_ratings)
-    """
     all_rating, all_rank = torch.topk(all_pred_ratings, 100)
-    #print(all_rating, all_rank)
+
     recommend_des = []
     n = 1
     d = 0
-    df_tmp = df_id_name
+    df_tmp = df_id_name.copy()
     np.warnings.filterwarnings('ignore')
     for i in range(int(duration) * int(num)):
         if d < int(duration):
@@ -167,10 +162,9 @@ if __name__ == '__main__':
             n += 1
             d = 1
 
-        user_df = df_tmp.iloc[all_rank[i].tolist()]
-        day_vis = user_df.copy()
-        user_df.loc[:, 'rating'] = all_rating[i].detach().cpu().clone().numpy()
-        day_vis.loc[:, str(d)] = 0
+        df_tmp = df_tmp.iloc[all_rank[i].tolist()]
+        df_tmp.loc[:, 'rating'] = all_rating[i].detach().cpu().clone().numpy()
+        df_tmp.loc[:, str(d)] += all_rating[i].detach().cpu().clone().numpy()
         day_vis.loc[:, str(d)] += all_rating[i].detach().cpu().clone().numpy()
 
         print(f'--------------{n}번째 관광객의 {d}일째 추천 여행지입니다.--------------')

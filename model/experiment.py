@@ -32,18 +32,13 @@ class Experiment(nn.Module):
         for epoch in range(self.epochs):
             total_loss = 0
             d1 = datetime.now()
-            for year, u_id, age, month, day, sex, dow, pos_item, neg_item in self.train_dataloader:
+            for year, u_id, dow, pos_item, neg_item in self.train_dataloader:
                 year, u_id = year.to(self.device), u_id.to(self.device)
-                age, month, day = age.to(self.device), month.to(self.device), day.to(self.device),
-                sex, dow = sex.to(self.device), dow.to(self.device)
+                dow = dow.to(self.device)
                 pos_item, neg_item = pos_item.to(self.device), neg_item.to(self.device)
 
                 u_embeds, pos_i_embeds, neg_i_embeds = self.model(year=year,
                                                                   u_id=u_id,
-                                                                  age=age,
-                                                                  month=month,
-                                                                  day=day,
-                                                                  sex=sex,
                                                                   dow=dow,
                                                                   pos_item=pos_item,
                                                                   neg_item=neg_item,
@@ -53,6 +48,7 @@ class Experiment(nn.Module):
                 loss.backward()
                 self.optimizer.step()
                 total_loss += loss
+                break
             BPR, HR, NDCG, RMSE = self.eval()
             train_bpr = total_loss / len(self.train_dataloader)
             print(f'epoch {epoch + 1}, Train BPR: {train_bpr}, Test BPR: {BPR}, HR:{HR}, NDCG:{NDCG}, RMSE:{RMSE}, Run time:{datetime.now()-d1}')
@@ -64,17 +60,12 @@ class Experiment(nn.Module):
         BPR = 0
         with torch.no_grad():
             self.model.eval()
-            for year, u_id, age, month, day, sex, dow, rating, pos_item in self.test_dataloader:
+            for year, u_id, dow, rating, pos_item in self.test_dataloader:
                 year, u_id, pos_item = year.to(self.device), u_id.to(self.device), pos_item.to(self.device)
-                age, month, day = age.to(self.device), month.to(self.device), day.to(self.device),
-                sex, dow, rating = sex.to(self.device), dow.to(self.device), rating.to(self.device)
+                dow, rating = dow.to(self.device), rating.to(self.device)
 
                 u_embeds, pos_i_embeds, _ = self.model(year=year,
                                                        u_id=u_id,
-                                                       age=age,
-                                                       month=month,
-                                                       day=day,
-                                                       sex=sex,
                                                        dow=dow,
                                                        pos_item=pos_item,
                                                        neg_item=torch.empty(0),
@@ -86,6 +77,7 @@ class Experiment(nn.Module):
                 neg_i_embeds = pos_i_embeds[1:]
                 neg_i_embeds = torch.cat((neg_i_embeds, neg_i_embeds[:1]))
                 pos_i_embeds = pos_i_embeds[:1]
+
                 loss = self.test_criterion(u_embeds, pos_i_embeds, neg_i_embeds)
                 BPR += loss
 
@@ -103,7 +95,8 @@ class Experiment(nn.Module):
                 pred_rate = pred_ratings[0,0]
                 pred_rate = pred_rate.to(self.device)
                 RMSE += self.rmse(pred_rate, rating[0])
-        return (BPR / len(self.test_dataloader)), np.mean(HR), np.mean(NDCG), (RMSE / len(self.test_dataloader))
+                break
+        return (BPR/ len(self.test_dataloader) ), np.mean(HR), np.mean(NDCG), (RMSE / len(self.test_dataloader))
 
     def Ndcg(self, gt_item, pred_items):
         # IDCG = self.dcg(gt_items)
