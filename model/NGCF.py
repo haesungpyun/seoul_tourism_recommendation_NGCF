@@ -67,8 +67,8 @@ class NGCF(nn.Module):
         # initial embedding layer
         initializer(self.user_embedding.weight)
         initializer(self.item_embedding.weight)
-
         initializer(self.dow_emb.weight)
+
         # initializer(self.sex_emb.weight)
         # initializer(self.age_emb.weight)
         # initializer(self.dow_emb.weight)
@@ -116,9 +116,9 @@ class NGCF(nn.Module):
         # dow_emb = self.dow_emb(dow)
         # feats = torch.cat((age_emb, month_emb, day_emb, sex_emb, dow_emb), dim=1)
         #user_mlp = self.user_lin(feats)
-        dow_emb = self.dow_emb(dow)
 
-        self.user_embedding.weight.data[u_id] = self.user_embedding.weight.data[u_id] + dow_emb.detach().clone()
+        dow_emb = self.dow_emb(dow)
+        self.user_embedding.weight.data[u_id] = (self.user_embedding.weight.data[u_id] + dow_emb.detach().clone()) * 0.5
         #* (1 - self.mlp_ratio) + user_mlp.clone() * self.mlp_ratio
 
         year_idx = year.unique()[0] % 18

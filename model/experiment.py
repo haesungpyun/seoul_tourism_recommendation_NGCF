@@ -48,7 +48,7 @@ class Experiment(nn.Module):
                 loss.backward()
                 self.optimizer.step()
                 total_loss += loss
-                break
+
             BPR, HR, NDCG, RMSE = self.eval()
             train_bpr = total_loss / len(self.train_dataloader)
             print(f'epoch {epoch + 1}, Train BPR: {train_bpr}, Test BPR: {BPR}, HR:{HR}, NDCG:{NDCG}, RMSE:{RMSE}, Run time:{datetime.now()-d1}')
@@ -72,7 +72,8 @@ class Experiment(nn.Module):
                                                        node_flag=False)
                 gt_rank = pos_item[0].item()
                 pred_ratings = torch.mm(u_embeds, pos_i_embeds.T)
-
+                print('pos_i',pos_i_embeds)
+                print('pred_ratings', pred_ratings)
                 # BPR
                 neg_i_embeds = pos_i_embeds[1:]
                 neg_i_embeds = torch.cat((neg_i_embeds, neg_i_embeds[:1]))
@@ -95,7 +96,7 @@ class Experiment(nn.Module):
                 pred_rate = pred_ratings[0,0]
                 pred_rate = pred_rate.to(self.device)
                 RMSE += self.rmse(pred_rate, rating[0])
-                break
+
         return (BPR/ len(self.test_dataloader) ), np.mean(HR), np.mean(NDCG), (RMSE / len(self.test_dataloader))
 
     def Ndcg(self, gt_item, pred_items):

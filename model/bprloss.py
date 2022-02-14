@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
+from torch import linalg as LA
 
 class BPR(nn.Module):
     def __init__(self, weight_decay, batch_size):
@@ -14,6 +14,6 @@ class BPR(nn.Module):
         x_uneg = torch.mul(u_idx, neg_idx).sum(dim=1)
         x_upn = x_upos - x_uneg
         log_prob = F.logsigmoid(x_upn).sum()
-        regularization = self.weight_decay * (u_idx.norm(dim=1).pow(2).sum() +
-                                              pos_idx.norm(dim=1).pow(2).sum() + neg_idx.norm(dim=1).pow(2).sum())
+        regularization = self.weight_decay * (LA.norm(u_idx, dim=1).pow(2).sum() +
+                                              LA.norm(pos_idx, dim=1).pow(2).sum() + LA.norm(neg_idx, dim=1).pow(2).sum())
         return (-log_prob + regularization) / self.batch_size

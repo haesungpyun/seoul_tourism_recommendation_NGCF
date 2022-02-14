@@ -11,8 +11,8 @@ from sklearn.preprocessing import PowerTransformer
 class Preprocess(object):
     def __init__(self, root_dir: str,
                  train_by_destination: bool,
-                 folder_path:str,
-                 save_data:bool) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame):
+                 folder_path: str,
+                 save_data: bool) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame):
 
         self.root_dir = root_dir
         self.train_by_destination = train_by_destination
@@ -26,7 +26,7 @@ class Preprocess(object):
     def load_preprocess_data(self):
         root_dir = self.root_dir
         path = os.path.join(root_dir, 'Datasets_v5.0.txt')
-        df_raw = pd.read_csv(path, sep='|')
+        df_raw = pd.read_csv(path, sep='|').sample(10000)
 
         # consider congestion as preference
         df_raw[['congestion_1', 'congestion_2']] = 1 / df_raw[['congestion_1', 'congestion_2']]
