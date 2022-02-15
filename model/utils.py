@@ -26,7 +26,7 @@ class Preprocess(object):
     def load_preprocess_data(self):
         root_dir = self.root_dir
         path = os.path.join(root_dir, 'Datasets_v5.0.txt')
-        df_raw = pd.read_csv(path, sep='|').sample(10000)
+        df_raw = pd.read_csv(path, sep='|')
 
         # consider congestion as preference
         df_raw[['congestion_1', 'congestion_2']] = 1 / df_raw[['congestion_1', 'congestion_2']]
@@ -208,7 +208,7 @@ class TourDataset(Dataset):
             pos_items = tmp.loc[tmp[self.rating_col] >= quarter, 'itemid']
             neg_items = np.setxor1d(all_destinations, pos_items)
             neg_idx = np.setxor1d(tmp.index, pos_items.index)
-            tmp.iloc[neg_idx][self.rating_col] = 0
+            tmp.loc[neg_idx][self.rating_col] = 0
             for year, uid, w, r, iid in pos_item_set:
                 tmp_negs = neg_items.copy()
                 # positive instance

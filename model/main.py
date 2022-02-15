@@ -93,5 +93,5 @@ print(f'Train ended! Total Run time:{datetime.now()-d1}')
 
 if save_model:
     PATH = os.path.join(FOLDER_PATH, f'NGCF_dow_{args.mlp_ratio}_{rating_col}_{np.random.randint(10)}' + '.pth')
-    #torch.save(model.state_dict(), PATH)
+    torch.save(model.state_dict(), PATH)
     print('Model saved!')
