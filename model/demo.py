@@ -27,10 +27,11 @@ class CPU_Unpickler(pickle.Unpickler):
             return super().find_class(module, name)
 
 
-def calculate_distance(dep_x, dep_y, arr_x, arr_y):
-    return np.sqrt(
-        ((np.cos(dep_x) * 6400 * 2 * 3.14 / 360) * np.abs(dep_y - arr_y)) ** 2 + (111 * np.abs(dep_x - arr_x) ** 2))
+def map_func(b):
+    return item_dict[b]
 
+
+vec_func = np.vectorize(map_func)
 
 if __name__ == '__main__':
     # check device
@@ -84,12 +85,9 @@ if __name__ == '__main__':
     PATH = os.path.join(root_dir, 'destination_id_name_genre_coordinate' + '.pkl')
     with open(PATH, 'rb') as f:
         df_id_name_genre_coordinate = CPU_Unpickler(f).load()
-    df_id_name_genre_coordinate = df_id_name_genre_coordinate.sort_values(by='destination').reset_index().drop('index',
-                                                                                                               axis=1)
+    df_id_name_genre_coordinate.loc[:, 'itemid'] = vec_func(df_id_name_genre_coordinate['destination'])
     df_id_name_genre_coordinate = df_id_name_genre_coordinate.rename(columns={'middle_category_name': 'genre'})
-    PATH = os.path.join(root_dir, 'seoul_gu_dong_coordinate' + '.pkl')
-    with open(PATH, 'rb') as f:
-        df_departure_coordinate = CPU_Unpickler(f).load()
+
     PATH = os.path.join(root_dir, 'congestion_1_2' + '.pkl')
     with open(PATH, 'rb') as f:
         df_congestion = CPU_Unpickler(f).load()
@@ -97,6 +95,11 @@ if __name__ == '__main__':
                                    aggfunc={'congestion_1': 'sum',
                                             'congestion_2': 'sum'})
     df_congestion = df_congestion.reset_index()
+    df_congestion.loc[:, 'itemid'] = vec_func(df_congestion['destination'])
+
+    PATH = os.path.join(root_dir, 'seoul_gu_dong_coordinate' + '.pkl')
+    with open(PATH, 'rb') as f:
+        df_departure_coordinate = CPU_Unpickler(f).load()
     print("Destination Data Loaded!")
 
     num_list = ['첫', '두', '세', '네']
@@ -162,23 +165,22 @@ if __name__ == '__main__':
     genre_1 = dest_dict[genre[1]]
     genre_2 = dest_dict[genre[2]]
 
-    print(" 1: 선호도\t 2: 혼잡도\t 3: 거리\t 중 고려 사항을 중요도 순으로 나열하세요")
-    print("(ex) 거리 선호도 순으로 중요할 경우: 3 1 / 선호도 거리 혼잡도 순으로 중요할 경우: 1 3 2 ")
+    print(" 1: 선호도\t 2: 혼잡도\t 3: 거리\t 중요도 비율을 입력하세요 (ex) 선호도 0.5 혼잡도 0.3 거리 0.2의 비율로 고려)")
     condition = input().split()
-    conditio_ratio = {'0': 0.5, '1': 0.3, '2': 0.2}
+    vis_rat = float(condition[1])
+    con_rat = float(condition[2])
+    dis_rat = float(condition[3])
 
-    print("추천 방법을 선택하세요 (ex 1:일 별 2: 개인 별 4: 종합")
-    type = input()
 
     print('-----------------------------추천 관광지 산출 중...-----------------------------')
 
     total_user_info = torch.LongTensor(total_user_info)
+    # total_user_info = torch.unique(total_user_info, dim=0)
     total_user_info = total_user_info.to(device)
     print(total_user_info)
 
     # user_info = [u_id, age, sex, month, day, dow]
-    u_id, age, sex = total_user_info.T[0], total_user_info.T[1], total_user_info.T[2]
-    month, day, dow = total_user_info.T[3], total_user_info.T[4], total_user_info.T[5]
+    u_id, dow = total_user_info.T[0], total_user_info.T[5]
 
     u_embeds, _, _ = model(year=torch.LongTensor([0]),
                            u_id=u_id,
@@ -191,9 +193,8 @@ if __name__ == '__main__':
     all_pred_ratings = torch.mm(u_embeds, all_i_emb.T)
     all_rating, all_rank = torch.topk(all_pred_ratings, 100)
 
-    recommend_des = []
-    df_total = df_id_name_genre_coordinate[['destination', 'destination_name', 'genre', 'x', 'y']].copy()
-    np.warnings.filterwarnings('ignore')
+    df_total = df_id_name_genre_coordinate[['destination_name', 'genre', 'x', 'y', 'itemid']].copy()
+    df_total = df_total.set_index('itemid')
 
     dep_co = df_departure_coordinate.loc[df_departure_coordinate['dong'] == depart, ['x', 'y']]
     dep_co = (dep_co['x'], dep_co['y'])
@@ -201,128 +202,140 @@ if __name__ == '__main__':
         arr_co = df_total.loc[df_total['destination'] == item, ['x', 'y']]
         arr_co = (arr_co['x'], arr_co['y'])
         df_total.loc[df_total['destination'] == item, 'distance'] = haversine(dep_co, arr_co) * 1000
+    df_total = df_total.drop(columns=['x', 'y'])
 
-    for i in range(len(total_user_info.T[0].unique())):
+    df_total = df_total.reset_index()[['itemid', 'destination_name', 'distance', 'genre']]
+    df_day = df_total.reset_index()[['itemid', 'destination_name', 'distance', 'genre']]
+    df_day = df_day.set_index('itemid')
+    df_user = df_total.reset_index()[['itemid', 'destination_name', 'distance', 'genre']]
+    df_user = df_user.set_index('itemid')
+    df_daily_user = df_total.reset_index()[['itemid', 'destination_name', 'distance', 'genre']]
+    df_daily_user = df_daily_user.set_index('itemid')
+    df_total = df_total.set_index('itemid')
+
+    for i in range(len(total_user_info)):
         # user_info = [u_id, age, sex, month, day, dow]
         u_info = total_user_info[i]
         u_id = u_info[0].item()
         month = u_info[3].item()
         day = u_info[4].item()
-        df_total = df_total.loc[all_rank[i].tolist()]
+        dow = u_info[5].item()
+
+        df_con_tmp = df_congestion.loc[(df_congestion['month'] == u_info.tolist()[3]) &
+                                       (df_congestion['day'] == u_info.tolist()[4]) &
+                                       (df_congestion['dayofweek'] == u_info.tolist()[5])]
+        df_con_tmp = df_con_tmp.set_index('itemid')
+        df_con_tmp = df_con_tmp.sort_values(by='congestion_1')
 
         if 'rating' not in df_total.columns:
             df_total.loc[:, 'visitor'] = 0
-        if str(u_id) not in df_total.columns:
-            df_total.loc[:, str(u_id)] = 0
-        if str(month)+str(day) not in df_total.columns:
-            df_total.loc[:, str(month)+str(day)] = 0
+        if str(u_id) not in df_user.columns:
+            df_daily_user.loc[:, str(u_id)] = 0
+        if str(month) + '-' + str(day) not in df_day.columns:
+            df_day.loc[:, str(month) + '-' + str(day)] = 0
+        if str(age)+'-'+str(sex) not in df_user.columns:
+            df_user.loc[:, str(age)+'-'+str(sex)] = 0
 
-        df_total.loc[:, 'visitor'] = df_total.loc[:, 'visitor'] + np.array(rank2rate)
-        df_total.loc[:, str(month)+str(day)] = df_total.loc[:, str(month)+str(day)] + np.array(rank2rate)
-        df_total.loc[:, str(u_id)] = df_total.loc[:, str(u_id)] + np.array(rank2rate)
+        df_total = df_total.loc[all_rank[i].tolist()]
+        df_total.loc[:, 'visitor'] = df_total.loc[:, 'visitor'] + (np.array(rank2rate) * vis_rat)
+        df_total = df_total.loc[df_con_tmp.index]
+        df_total.loc[:, 'visitor'] = df_total.loc[:, 'visitor'] + (np.array(rank2rate) * con_rat)
+        df_total = df_total.sort_values(by='distance')
+        df_total.loc[:, 'visitor'] = df_total.loc[:, 'visitor'] + (np.array(rank2rate) * dis_rat)
 
+        df_day = df_day.loc[all_rank[i].tolist()]
+        df_day.loc[:, str(month) + '-' + str(day)] = df_day.loc[:, str(month) + '-' + str(day)] + \
+                                                     (np.array(rank2rate) * vis_rat)
+        df_day = df_day.loc[df_con_tmp.index]
+        df_day.loc[:, str(month) + '-' + str(day)] = df_day.loc[:, str(month) + '-' + str(day)] + \
+                                                     (np.array(rank2rate) * con_rat)
+        df_day = df_day.sort_values(by='distance')
+        df_day.loc[:, str(month) + '-' + str(day)] = df_day.loc[:, str(month) + '-' + str(day)] + \
+                                                     (np.array(rank2rate) * dis_rat)
 
+        df_user = df_user.loc[all_rank[i].tolist()]
+        df_user.loc[:, str(age)+'-'+str(sex)] = df_user.loc[:, str(age)+'-'+str(sex)] + (np.array(rank2rate) * vis_rat)
+        df_user = df_user.loc[df_con_tmp.index]
+        df_user.loc[:, str(age)+'-'+str(sex)] = df_user.loc[:, str(age)+'-'+str(sex)] + (np.array(rank2rate) * con_rat)
+        df_user = df_user.sort_values(by='distance')
+        df_user.loc[:, str(age)+'-'+str(sex)] = df_user.loc[:, str(age)+'-'+str(sex)] + (np.array(rank2rate) * dis_rat)
 
+        df_daily_user = df_daily_user.loc[all_rank[i].tolist()]
+        df_daily_user.loc[:, str(u_id)] = df_daily_user.loc[:, str(u_id)] + (np.array(rank2rate) * vis_rat)
+        df_daily_user = df_daily_user.loc[df_con_tmp.index]
+        df_daily_user.loc[:, str(u_id)] = df_daily_user.loc[:, str(u_id)] + (np.array(rank2rate) * con_rat)
+        df_daily_user = df_daily_user.sort_values(by='distance')
+        df_daily_user.loc[:, str(u_id)] = df_daily_user.loc[:, str(u_id)] + (np.array(rank2rate) * dis_rat)
 
+    df_day = df_day.loc[(df_total['genre'] == genre_0) &
+                        (df_total['genre'] == genre_1) &
+                        (df_total['genre'] == genre_2)]
 
-        # for daily personalized recommendation
-        if (condition == '3'):
-            dcg_dis = 1 / df_total['distance'] / np.log2((np.array(rank2rate) + 1))
-            df_total.loc[:, str(u_id)+'_dis'] = dcg_dis
+    df_user = df_user.loc[(df_total['genre'] == genre_0) &
+                        (df_total['genre'] == genre_1) &
+                        (df_total['genre'] == genre_2)]
 
-        if (condition == '2') | (condition == '4'):
-            # consider congestion first
-            df_congestion['congestion_1'] = df_congestion['congestion_1'] + \
-                                            np.ceil(np.abs(df_congestion['congestion_1'].min()) + 1)
-            dest_congestion = df_congestion.loc[(df_congestion['month'] == u_info.tolist()[3]) &
-                                                (df_congestion['day'] == u_info.tolist()[4])]
-            df_congestion = df_congestion.sort_values(by='destination').reset_index().drop('index', axis=1)
-            # sort df by rank
-            df_congestion = df_congestion.loc[all_rank[i].tolist()]
-            # calculate dcg
-            dcg_con = 1 / df_congestion['congestion_1'] / np.log2((np.array(rank2rate) + 1))
-            df_total.loc[:, str(u_id) + '_con'] = dcg_con
+    print("추천 방법을 선택하세요 (ex 1:날짜 별 2: 성별 나이 별 추천 3: 날짜 성별 나이 별 4: 종합")
+    rec_type = input()
 
-            rank = df_total.sort_values(by='con').reset_index().index
-            dcg_dis = 1 / df_total['distance'] / np.log2((np.array(rank) + 1))
-            df_total.loc[:, str(u_id) + '_con_' + '_dis'] = dcg_dis
+    while rec_type != '5':
 
+        if type == '1':
+            for col in df_day.iloc[:, 3:].columns:
+                df_ge_med_bool = df_day[col].ge(np.floor(df_day.iloc[:, 3:].median(axis=1)), axis=0)
+                idx = df_day[col][df_ge_med_bool].index
 
-    # 개인 별 일 별 데이터 생성 해놓음
-    # 이 데이터로 날짜끼리 묶고 사람끼리 묶고 이 데이터 다 합쳐서 전체 출력
-    # 일 별 개인별 통합 별로 1, 2, 3 조건 일 때 해야함
+                print(f"-------------------{col.split('-')[0]}월 {col.split('-')[1]}일 추천 여행지입니다.-------------------")
+                tmp = df_day.loc[idx, ['destination_name', col]]
+                print(tmp.sort_values(by=col, ascending=False).iloc[:10].reset_index().drop('itemid'))
 
-    for i in range(len(total_user_info.T[0].unique())):
+                print("추천 방법을 선택하세요 (ex 1:날짜 별 2: 성별 나이 별 추천 3: 날짜 성별 나이 별 4: 종합 5: 종료 ")
+                rec_type = input()
 
-        if (condition == '3'):
+        if type == '2':
+            for col in df_user.iloc[:, 3:].columns:
+                df_ge_med_bool = df_user[col].ge(np.floor(df_user.iloc[:, 3:].median(axis=1)), axis=0)
+                idx = df_user[col][df_ge_med_bool].index
+                if col.split('-')[1] == '0':
+                    sex = '여성'
+                else:
+                    sex = '남성'
+                print(f"-------------------{int(col.split('-')[0])-5}대 {sex}분 추천 여행지입니다.-------------------")
+                tmp = df_user.loc[idx, ['destination_name', col]]
+                print(tmp.sort_values(by=col, ascending=False).iloc[:10].reset_index().drop('itemid'))
 
-            dcg_dis = 1 / df_total['distance'] / np.log2((np.array(rank2rate) + 1))
-            df_total.loc[:, str(u_id) + '_dis'] = dcg_dis
+                print("추천 방법을 선택하세요 (ex 1:날짜 별 2: 성별 나이 별 추천 3: 날짜 성별 나이 별 4: 종합 5: 종료 ")
+                rec_type = input()
 
-        if (condition == '2') | (condition == '4'):
-            # consider congestion first
-            df_congestion['congestion_1'] = df_congestion['congestion_1'] + \
-                                            np.ceil(np.abs(df_congestion['congestion_1'].min()) + 1)
-            dest_congestion = df_congestion.loc[(df_congestion['month'] == u_info.tolist()[3]) &
-                                                (df_congestion['day'] == u_info.tolist()[4])]
-            df_congestion = df_congestion.sort_values(by='destination').reset_index().drop('index', axis=1)
-            # sort df by rank
-            df_congestion = df_congestion.loc[all_rank[i].tolist()]
-            # calculate dcg
-            dcg_con = 1 / df_congestion['congestion_1'] / np.log2((np.array(rank2rate) + 1))
-            df_total.loc[:, str(u_id) + '_con'] = dcg_con
+        if type == '3':
+            for col in df_daily_user.iloc[:, 3:].columns:
+                df_ge_med_bool = df_daily_user[col].ge(np.floor(df_daily_user.iloc[:, 3:].median(axis=1)), axis=0)
+                idx = df_daily_user[col][df_ge_med_bool].index
 
-            rank = df_total.sort_values(by='con').reset_index().index
-            dcg_dis = 1 / df_total['distance'] / np.log2((np.array(rank) + 1))
-            df_total.loc[:, str(u_id) + '_con_' + '_dis'] = dcg_dis
+                info = list(user_dict.keys())[list(user_dict.values()).index(int(col))]
+                age = info[:2]
+                sex = info[2]
+                month = info[3:5]
+                day = info[5:7]
+                if sex == '0':
+                    s = '여성'
+                else:
+                    s = '남성'
+                print(f"-------------------{int(age)-5}대 {s}분의 {month}월 {day}일 추천 여행지입니다.-------------------")
+                tmp = df_daily_user.loc[idx, ['destination_name', col]]
+                print(tmp.sort_values(by=col, ascending=False).iloc[:10].reset_index().drop('itemid'))
 
-            # personal rec
+                print("추천 방법을 선택하세요 (ex 1:날짜 별 2: 성별 나이 별 추천 3: 날짜 성별 나이 별 4: 종합 5: 종료 ")
+                rec_type = input()
 
-            # personal daiy rec
+        if type == '4':
+            for col in df_total.iloc[:, 3:].columns:
+                df_ge_med_bool = df_total[col].ge(np.floor(df_total.iloc[:, 3:].median(axis=1)), axis=0)
+                idx = df_total[col][df_ge_med_bool].index
 
-        # df_day.loc[:, 'day'+str(d)] = df_total.loc[:, 'day'+str(d)] + np.array(rank2rate)
-        # df_user.loc[:, 'user'+str(n)] = df_total.loc[:, 'user'+str(n)] + np.array(rank2rate)
+                print(f"-------------------여행 기간 {int(duration)}일 간 추천 여행지입니다.-------------------")
+                tmp = df_total.loc[idx, ['destination_name', col]]
+                print(tmp.sort_values(by=col, ascending=False).iloc[:10].reset_index().drop('itemid'))
 
-    df_genre = df_total.loc[(df_total['genre'] == genre_0) &
-                            (df_total['genre'] == genre_1) &
-                            (df_total['genre'] == genre_2)]
-
-    df_genre = df_genre.sort_values(by='visitor').reset_index().drop('index', axis=1)
-
-    for d in range(int(duration)):
-        print(f'--------------여행 {d + 1}일째 추천 여행지입니다.--------------')
-        df_tmp = df_genre.loc[['destination_name', 'visitor']]
-        df_tmp = df_genre.iloc[:int(rec_num)]
-        print(df_tmp.reset_index().drop('index', axis=1))
-
-"""
-
-    if condition == '1':
-        dest_congestion = df_congestion.loc[(df_congestion['month'] == u_info[3]) &
-                                            (df_congestion['day'] == u_info[4])]
-        df_congestion = df_congestion.sort_values(by='destination').reset_index().drop('index', axis=1)
-        df_congestion = df_congestion[all_rank[i].tolist()]
-
-        dcg_con = df_congestion['congestion_1'] / np.log2((np.array(rank2rate) + 1))
-        df_total.loc[:, 'con'] = df_total.loc[:,'user_' + str(n) + '_day_' + str(d)] + dcg_con
-
-    if condition == '2':
-        dep_co = df_departure_coordinate.loc[df_departure_coordinate['dong'] == depart, ['x', 'y']]
-        dep_co = (dep_co['x'], dep_co['y'])
-        for item in df_total['destination'].unqiue():
-            arr_co = df_total.loc[df_total['destination'] == item, ['x', 'y']]
-            arr_co = (arr_co['x'], arr_co['y'])
-            df_total.loc[df_total['destination'] == item, 'distance'] = haversine(dep_co, arr_co) * 1000
-        df_total = df_total[]
-        dcg_dis = df_
-
-    if condition == '3':
-        pass
-
-    # df_day.loc[:, 'day'+str(d)] = df_total.loc[:, 'day'+str(d)] + np.array(rank2rate)
-    # df_user.loc[:, 'user'+str(n)] = df_total.loc[:, 'user'+str(n)] + np.array(rank2rate)
-
-    df_genre = df_total.loc[(df_total['genre'] == dest_dict[genre[0]]) &
-                            (df_total['genre'] == dest_dict[genre[1]]) &
-                            (df_total['genre'] == dest_dict[genre[2]])]
-"""
+                print("추천 방법을 선택하세요 (ex 1:날짜 별 2: 성별 나이 별 추천 3: 날짜 성별 나이 별 4: 종합 5: 종료 ")
+                rec_type = input()
