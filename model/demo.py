@@ -8,6 +8,7 @@ from parsers import args
 import numpy as np
 import io
 from haversine import haversine
+import time
 
 
 def input_filterchar(userinfo: str):
@@ -129,8 +130,10 @@ if __name__ == '__main__':
 
     total_user_info = []
     for i in range(int(num)):
-        sex = input(f'{num_list[i]}번째 관광객의 성별을 입력하세요(ex 남/여):')
-        age = input(f'{num_list[i]}번째 관광객의 연령을 입력하세요(ex 23):')
+        print(f'{num_list[i]}번째 관광객의 성별을 입력하세요(ex 남/여):')
+        sex = input()
+        print(f'{num_list[i]}번째 관광객의 연령을 입력하세요(ex 23):')
+        age = input()
         sex = int(gender.index(sex))
         age = ((int(age) // 10) * 10 + 5)
 
@@ -171,7 +174,7 @@ if __name__ == '__main__':
     con_rat = float(condition[2])
     dis_rat = float(condition[3])
 
-
+    d1 = time.time()
     print('-----------------------------추천 관광지 산출 중...-----------------------------')
 
     total_user_info = torch.LongTensor(total_user_info)
@@ -289,8 +292,10 @@ if __name__ == '__main__':
                 tmp = df_day.loc[idx, ['destination_name', col]]
                 print(tmp.sort_values(by=col, ascending=False).iloc[:10].reset_index().drop('itemid'))
 
+                print("Recommend run time: ", time.time()-d1)
                 print("추천 방법을 선택하세요 (ex 1:날짜 별 2: 성별 나이 별 추천 3: 날짜 성별 나이 별 4: 종합 5: 종료 ")
                 rec_type = input()
+                d1 = time.time()
 
         if type == '2':
             for col in df_user.iloc[:, 3:].columns:
@@ -304,8 +309,10 @@ if __name__ == '__main__':
                 tmp = df_user.loc[idx, ['destination_name', col]]
                 print(tmp.sort_values(by=col, ascending=False).iloc[:10].reset_index().drop('itemid'))
 
+                print("Recommend run time: ", time.time() - d1)
                 print("추천 방법을 선택하세요 (ex 1:날짜 별 2: 성별 나이 별 추천 3: 날짜 성별 나이 별 4: 종합 5: 종료 ")
                 rec_type = input()
+                d1 = time.time()
 
         if type == '3':
             for col in df_daily_user.iloc[:, 3:].columns:
@@ -325,8 +332,10 @@ if __name__ == '__main__':
                 tmp = df_daily_user.loc[idx, ['destination_name', col]]
                 print(tmp.sort_values(by=col, ascending=False).iloc[:10].reset_index().drop('itemid'))
 
+                print("Recommend run time: ", time.time() - d1)
                 print("추천 방법을 선택하세요 (ex 1:날짜 별 2: 성별 나이 별 추천 3: 날짜 성별 나이 별 4: 종합 5: 종료 ")
                 rec_type = input()
+                d1 = time.time()
 
         if type == '4':
             for col in df_total.iloc[:, 3:].columns:
@@ -337,5 +346,7 @@ if __name__ == '__main__':
                 tmp = df_total.loc[idx, ['destination_name', col]]
                 print(tmp.sort_values(by=col, ascending=False).iloc[:10].reset_index().drop('itemid'))
 
+                print("Recommend run time: ", time.time() - d1)
                 print("추천 방법을 선택하세요 (ex 1:날짜 별 2: 성별 나이 별 추천 3: 날짜 성별 나이 별 4: 종합 5: 종료 ")
                 rec_type = input()
+                d1 = time.time()
