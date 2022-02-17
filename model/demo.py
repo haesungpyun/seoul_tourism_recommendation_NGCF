@@ -115,7 +115,7 @@ if __name__ == '__main__':
 
     print("Data Load time: ",  time.time()-d1)
 
-    """print('---------------------------------------------------------------------------------------------')
+    print('---------------------------------------------------------------------------------------------')
     print("관광객 수를 입력하세요(ex 2):")
     num = input()
     print("관광 기간를 입력하세요(ex 7):")
@@ -126,6 +126,9 @@ if __name__ == '__main__':
     rec_num = input()
     print('출발지를 입력하세요 (ex) 사직동)')
     depart = input()
+
+    if (dates[0] =='02') & (dates[1] =='29'):
+        dates[1] = '28'
 
     month = torch.LongTensor([int(dates[0])]).to(device)
     day = torch.LongTensor([int(dates[1])]).to(device)
@@ -162,19 +165,17 @@ if __name__ == '__main__':
             uid = user_dict[u_feats]
             user_info = [uid, age, sex, month_tmp, day_tmp, dow_tmp]
             total_user_info.append(user_info)
-    """
+
     print("관광지의 유형을 선택하세요\n"
           "1.역사관광지 \t2.휴양관광지\t3.체험관광지\t4.문화시설\t5.건축/조형물\t6.자연관광지\t7.쇼핑 (ex) 1 2 3):")
-    #genre = input().split()
-    genre = "2 4 7"
+    genre = input().split()
     genre = genre.split()
     genre_0 = dest_dict[genre[0]]
     genre_1 = dest_dict[genre[1]]
     genre_2 = dest_dict[genre[2]]
 
     print("선호도 혼잡도 거리의 중요도 비율을 입력하세요 (ex) 선호도 0.5 혼잡도 0.3 거리 0.2의 비율로 고려 -> 0.5 0.2 0.3)")
-    #condition = input().split()
-    condition = "0.6 0.2 0.2"
+    condition = input().split()
     condition = condition.split()
     vis_rat = float(condition[0])
     con_rat = float(condition[1])
@@ -186,35 +187,6 @@ if __name__ == '__main__':
 
     d1 = time.time()
     print('-----------------------------추천 관광지 산출 중...-----------------------------')
-    depart = '명동'
-    total_user_info = [[ 967,   25,    0,    8,   26,    2],
-                       [ 968,   25,    0,    8,   27,    3],
-                       [ 969,   25,    0,    8,   28,    4],
-                       [ 970,   25,    0,    8,   29,    5],
-                       [ 971,   25,    0,    8,   30,    6],
-                       [ 972,   25,    0,    8,   31,    0],
-                       [ 973,   25,    0,    9,    1,    1],
-                       [ 967,   25,    0,    8,   26,    2],
-                       [ 968,   25,    0,    8,   27,    3],
-                       [ 969,   25,    0,    8,   28,    4],
-                       [ 970,   25,    0,    8,   29,    5],
-                       [ 971,   25,    0,    8,   30,    6],
-                       [ 972,   25,    0,    8,   31,    0],
-                       [ 973,   25,    0,    9,    1,    1],
-                       [4252,   55,    1,    8,   26,    2],
-                       [4253,   55,    1,    8,   27,    3],
-                       [4254,   55,    1,    8,   28,    4],
-                       [4255,   55,    1,    8,   29,    5],
-                       [4256,   55,    1,    8,   30,    6],
-                       [4257,   55,    1,    8,   31,    0],
-                       [4258,   55,    1,    9,    1,    1],
-                       [3887,   55,    0,    8,   26,    2],
-                       [3888,   55,    0,    8,   27,    3],
-                       [3889,   55,    0,    8,   28,    4],
-                       [3890,   55,    0,    8,   29,    5],
-                       [3891,   55,    0,    8,   30,    6],
-                       [3892,   55,    0,    8,   31,    0],
-                       [3893,   55,    0,    9,    1,    1]]
     total_user_info = torch.LongTensor(total_user_info)
 
     # total_user_info = torch.unique(total_user_info, dim=0)
@@ -288,8 +260,6 @@ if __name__ == '__main__':
         df_total = df_total.sort_values(by='distance')
         df_total.loc[:, 'visitor'] = df_total.loc[:, 'visitor'] + (np.array(rank2rate) * dis_rat)
 
-        print('total ended')
-
         df_day = df_day.loc[all_rank[i].tolist()]
         df_day.loc[:, str(month) + '-' + str(day)] = df_day.loc[:, str(month) + '-' + str(day)] + \
                                                      (np.array(rank2rate) * vis_rat)
@@ -300,8 +270,6 @@ if __name__ == '__main__':
         df_day.loc[:, str(month) + '-' + str(day)] = df_day.loc[:, str(month) + '-' + str(day)] + \
                                                      (np.array(rank2rate) * dis_rat)
 
-        print('day ended')
-
         df_user = df_user.loc[all_rank[i].tolist()]
         df_user.loc[:, str(age)+'-'+str(sex)] = df_user.loc[:, str(age)+'-'+str(sex)] + (np.array(rank2rate) * vis_rat)
         df_user = df_user.loc[df_con_tmp.index]
@@ -309,16 +277,12 @@ if __name__ == '__main__':
         df_user = df_user.sort_values(by='distance')
         df_user.loc[:, str(age)+'-'+str(sex)] = df_user.loc[:, str(age)+'-'+str(sex)] + (np.array(rank2rate) * dis_rat)
 
-        print('user ended')
-
         df_daily_user = df_daily_user.loc[all_rank[i].tolist()]
         df_daily_user.loc[:, str(u_id)] = df_daily_user.loc[:, str(u_id)] + (np.array(rank2rate) * vis_rat)
         df_daily_user = df_daily_user.loc[df_con_tmp.index]
         df_daily_user.loc[:, str(u_id)] = df_daily_user.loc[:, str(u_id)] + (np.array(rank2rate) * con_rat)
         df_daily_user = df_daily_user.sort_values(by='distance')
         df_daily_user.loc[:, str(u_id)] = df_daily_user.loc[:, str(u_id)] + (np.array(rank2rate) * dis_rat)
-
-        print('daily_user ended', df_daily_user.shape)
 
     df_day = df_day.loc[(df_total['genre'] == genre_0) |
                         (df_total['genre'] == genre_1) |
@@ -331,7 +295,6 @@ if __name__ == '__main__':
     df_daily_user = df_daily_user.loc[(df_total['genre'] == genre_0) |
                           (df_total['genre'] == genre_1) |
                           (df_total['genre'] == genre_2)]
-
 
     while rec_type != '5':
 
