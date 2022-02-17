@@ -27,8 +27,8 @@ FOLDER_PATH ='saved_model_data'
 if not os.path.exists(FOLDER_PATH):
     os.mkdir(FOLDER_PATH)
 
-root_dir = '../../../LIG/Preprocessing/Datasets_v5.0/'
-#root_dir = '../data/'
+#root_dir = '../../../LIG/Preprocessing/Datasets_v5.0/'
+root_dir = '../data/'
 preprocess = Preprocess(root_dir=root_dir, train_by_destination=False, folder_path=FOLDER_PATH, save_data=save_data)
 total_df, train_df, test_df, num_dict = preprocess.split_train_test()
 
@@ -93,5 +93,5 @@ print(f'Train ended! Total Run time:{datetime.now()-d1}')
 
 if save_model:
     PATH = os.path.join(FOLDER_PATH, f'NGCF_dow_{args.mlp_ratio}_{rating_col}_{np.random.randint(10)}' + '.pth')
-    torch.save(model.state_dict(), PATH)
-    print('Model saved!')
+    #torch.save(model.state_dict(), PATH)
+    #print('Model saved!')
