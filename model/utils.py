@@ -5,7 +5,7 @@ import numpy as np
 import os
 import pickle
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import PowerTransformer
+from sklearn.preprocessing import StandardScaler, PowerTransformer
 
 
 class Preprocess(object):
@@ -48,7 +48,7 @@ class Preprocess(object):
         df_raw[['year', 'month', 'day']] = df_raw[['year', 'month', 'day']].apply(np.int64)
 
         # Robust scaler to transform data with many outliers to dense data
-        scaler = PowerTransformer()
+        scaler = StandardScaler()
         df_raw[['visitor', 'congestion_1', 'congestion_2']] =\
             pd.DataFrame(scaler.fit_transform(df_raw[['visitor', 'congestion_1', 'congestion_2']]))
 
@@ -199,16 +199,19 @@ class TourDataset(Dataset):
 
         for userid in df['userid'].unique():
             tmp = df.loc[df['userid'].isin([userid])]
+            
             quarter = tmp[self.rating_col].quantile(q=0.25)
-            pos_item_set = zip(tmp['year'],
-                               tmp['userid'],
-                               tmp['dayofweek'],
-                               tmp[self.rating_col],
+            tmp.loc[tmp[self.rating_col] < quarter, 'visitor'] = 0.0 
+            pos_items = tmp.loc[tmp[self.rating_col] >= quarter, ['itemid']]
+    
+            pos_item_set = zip(tmp.loc[tmp[self.rating_col] >= quarter,'year'],
+                               tmp.loc[tmp[self.rating_col] >= quarter,'userid'],
+                               tmp.loc[tmp[self.rating_col] >= quarter,'dayofweek'],
+                               tmp.loc[tmp[self.rating_col] >= quarter,self.rating_col],
                                tmp.loc[tmp[self.rating_col] >= quarter, 'itemid'])
-            pos_items = tmp.loc[tmp[self.rating_col] >= quarter, 'itemid']
+            
             neg_items = np.setxor1d(all_destinations, pos_items)
-            neg_idx = np.setxor1d(tmp.index, pos_items.index)
-            tmp.loc[neg_idx][self.rating_col] = 0
+            
             for year, uid, w, r, iid in pos_item_set:
                 tmp_negs = neg_items.copy()
                 # positive instance

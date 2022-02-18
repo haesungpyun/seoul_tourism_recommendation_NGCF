@@ -3,6 +3,8 @@ import torch
 import torch.nn as nn
 import numpy as np
 from datetime import datetime
+from tqdm.auto import tqdm
+
 
 class Experiment(nn.Module):
     def __init__(self,
@@ -29,6 +31,8 @@ class Experiment(nn.Module):
 
     def train(self):
         print('------------------------- Train -------------------------')
+        num_steps = self.epochs * len(self.train_dataloader)
+        train_bar = tqdm(range(num_steps))
         for epoch in range(self.epochs):
             total_loss = 0
             d1 = datetime.now()
@@ -36,7 +40,7 @@ class Experiment(nn.Module):
                 year, u_id = year.to(self.device), u_id.to(self.device)
                 dow = dow.to(self.device)
                 pos_item, neg_item = pos_item.to(self.device), neg_item.to(self.device)
-
+                
                 u_embeds, pos_i_embeds, neg_i_embeds = self.model(year=year,
                                                                   u_id=u_id,
                                                                   dow=dow,
@@ -48,7 +52,7 @@ class Experiment(nn.Module):
                 loss.backward()
                 self.optimizer.step()
                 total_loss += loss
-
+                train_bar.update(1)
             BPR, HR, NDCG, RMSE = self.eval()
             train_bpr = total_loss / len(self.train_dataloader)
             print(f'epoch {epoch + 1}, Train BPR: {train_bpr}, Test BPR: {BPR}, HR:{HR}, NDCG:{NDCG}, RMSE:{RMSE}, Run time:{datetime.now()-d1}')
@@ -63,7 +67,6 @@ class Experiment(nn.Module):
             for year, u_id, dow, rating, pos_item in self.test_dataloader:
                 year, u_id, pos_item = year.to(self.device), u_id.to(self.device), pos_item.to(self.device)
                 dow, rating = dow.to(self.device), rating.to(self.device)
-
                 u_embeds, pos_i_embeds, _ = self.model(year=year,
                                                        u_id=u_id,
                                                        dow=dow,
