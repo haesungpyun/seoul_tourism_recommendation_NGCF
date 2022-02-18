@@ -7,6 +7,7 @@ import pickle
 import os
 from scipy.linalg import get_blas_funcs
 from datetime import datetime
+from parsers import args
 
 
 class Matrix(nn.Module):
@@ -64,7 +65,7 @@ class Matrix(nn.Module):
         print('Laplacian Matrix Created!')
         if self.save_data:
             d1 = datetime.now()
-            PATH = os.path.join(self.folder_path,f'lap_list_{d1.month}_{d1.day}_{d1.hour}_{d1.minute}' + '.pkl')
+            PATH = os.path.join(self.folder_path,f'lap_list_implicit_{args.epoch}_{args.batch_size}_{args.lr}_{args.emb_ratio}_{args.scaler}_{d1.month}_{d1.day}_{d1.hour}_{d1.minute}' + '.pkl')
             with open(PATH, 'wb') as f:
                 pickle.dump(self.lap_list, f)
             print('Laplacian data Saved!')

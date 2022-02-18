@@ -67,7 +67,7 @@ model = NGCF(embed_size=args.embed_size,
              layer_size=[64, 64, 64],
              node_dropout=args.node_dropout,
              mess_dropout=args.mess_dropout,
-             emb_ratio=args.mlp_ratio,
+             emb_ratio=args.emb_ratio,
              lap_list=lap_list,
              num_dict=num_dict,
              batch_size=args.batch_size,
@@ -92,6 +92,6 @@ print(f'Train ended! Total Run time:{datetime.now()-d1}')
 
 if save_data:
     d1 = datetime.now()
-    PATH = os.path.join(FOLDER_PATH, f'NGCF_implicit_{args.emb_ratio}_{args.batch_size}_{args.lr}_{d1.month}_{d1.day}_{d1.hour}_{d1.minute}' + '.pth')
+    PATH = os.path.join(FOLDER_PATH, f'NGCF_implicit_{args.epoch}_{args.batch_size}_{args.lr}_{args.emb_ratio}_{args.scaler}_{d1.month}_{d1.day}_{d1.hour}_{d1.minute}' + '.pth')
     torch.save(model.state_dict(), PATH)
     print('Model saved!')

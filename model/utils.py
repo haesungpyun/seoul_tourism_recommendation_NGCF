@@ -7,6 +7,7 @@ import pickle
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, PowerTransformer
 from datetime import datetime
+from parsers import args
 
 
 class Preprocess(object):
@@ -80,10 +81,10 @@ class Preprocess(object):
 
         if self.save_data:
             d1 = datetime.now()
-            PATH = os.path.join(self.folder_path, f'user_dict_{d1.month}_{d1.day}_{d1.hour}_{d1.minute}' + '.pkl')
+            PATH = os.path.join(self.folder_path, f'user_dict_implicit_{args.epoch}_{args.batch_size}_{args.lr}_{args.emb_ratio}_{args.scaler}_{d1.month}_{d1.day}_{d1.hour}_{d1.minute}' + '.pkl')
             with open(PATH, 'wb') as f:
                 pickle.dump(self.user_dict, f)
-            PATH = os.path.join(self.folder_path, f'item_dict_{d1.month}_{d1.day}_{d1.hour}_{d1.minute}' + '.pkl')
+            PATH = os.path.join(self.folder_path, f'item_dict_implicit_{args.epoch}_{args.batch_size}_{args.lr}_{args.emb_ratio}_{args.scaler}_{d1.month}_{d1.day}_{d1.hour}_{d1.minute}' + '.pkl')
             with open(PATH, 'wb') as f:
                 pickle.dump(self.item_dict, f)
             print('User, Item data Saved!')
@@ -199,11 +200,10 @@ class TourDataset(Dataset):
         else:
             ng_ratio = 24
 
-        quarter = df[self.rating_col].quantile(q=0.25)
 
         for userid in df['userid'].unique():
             tmp = df.loc[df['userid'].isin([userid])]
-
+            quarter = tmp[self.rating_col].quantile(q=0.25)
             tmp.loc[tmp[self.rating_col] < quarter, 'visitor'] = 0.0
             pos_items = tmp.loc[tmp[self.rating_col] >= quarter, 'itemid']
             neg_items = np.setxor1d(all_destinations, pos_items)
