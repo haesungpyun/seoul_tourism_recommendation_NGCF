@@ -112,7 +112,7 @@ class NGCF(nn.Module):
         month_emb = self.month_emb(month)
         day_emb = self.day_emb(day)
         dow_emb = self.dow_emb(dow)
-        feats = torch.cat((age_emb, month_emb, day_emb, sex_emb, dow_emb), dim=1)
+        feats = torch.cat((age_emb, sex_emb, month_emb, day_emb, dow_emb), dim=1)
         feats = feats.to(self.device)
 
         self.user_embedding.weight.data[u_id] = (self.user_embedding.weight.data[u_id] + feats.detach().clone()) * 0.5

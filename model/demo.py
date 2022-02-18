@@ -75,7 +75,9 @@ if __name__ == '__main__':
                  num_dict=num_dict,
                  batch_size=args.batch_size,
                  device=device).to(device=device)
-    PATH = os.path.join(FOLDER_PATH, f'NGCF_implicit_visitor_256_1e-05_02_18_05_32' + '.pth')
+    # NGCF_implicit_visitor_256_1e-05_02_18_05_32
+    # NGCF_dow_0.5_visitor_3
+    PATH = os.path.join(FOLDER_PATH, f'NGCF_dow_0.5_visitor_3' + '.pth')
     model.load_state_dict(torch.load(PATH, map_location=device))
     model.eval()
     print('NGCF Model Loaded!')
@@ -280,20 +282,19 @@ if __name__ == '__main__':
         df_daily_user = df_daily_user.sort_values(by='distance')
         df_daily_user.loc[:, str(u_id)] = df_daily_user.loc[:, str(u_id)] + (np.array(rank2rate) * dis_rat)
 
-    df_day = df_day.loc[(df_total['genre'] == genre_0) |
-                        (df_total['genre'] == genre_1) |
-                        (df_total['genre'] == genre_2)]
-
-    df_user = df_user.loc[(df_total['genre'] == genre_0) |
-                        (df_total['genre'] == genre_1) |
-                        (df_total['genre'] == genre_2)]
-
-    df_daily_user = df_daily_user.loc[(df_total['genre'] == genre_0) |
-                          (df_total['genre'] == genre_1) |
-                          (df_total['genre'] == genre_2)]
+    # df_day = df_day.loc[(df_total['genre'] == genre_0) |
+    #                     (df_total['genre'] == genre_1) |
+    #                     (df_total['genre'] == genre_2)]
+    #
+    # df_user = df_user.loc[(df_total['genre'] == genre_0) |
+    #                     (df_total['genre'] == genre_1) |
+    #                     (df_total['genre'] == genre_2)]
+    #
+    # df_daily_user = df_daily_user.loc[(df_total['genre'] == genre_0) |
+    #                       (df_total['genre'] == genre_1) |
+    #                       (df_total['genre'] == genre_2)]
 
     while rec_type != '5':
-
         if rec_type == '1':
             for col in df_day.iloc[:, 3:].columns:
                 df_ge_med_bool = df_day[col].ge(np.floor(df_day.iloc[:, 3:].median(axis=1)), axis=0)
