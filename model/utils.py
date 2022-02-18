@@ -35,9 +35,9 @@ class Preprocess(object):
 
         # reshape data seperated by time zone into one day
         df_raw = pd.pivot_table(df_raw, index=['date', 'destination', 'dayofweek', 'sex', 'age'],
-                               aggfunc={'congestion_1': 'sum',
-                                        'congestion_2': 'sum',
-                                        'visitor': 'sum'})
+                                aggfunc={'congestion_1': 'sum',
+                                         'congestion_2': 'sum',
+                                         'visitor': 'sum'})
         df_raw = df_raw.reset_index()
 
         # seperate year and month-day data to use as features
@@ -49,7 +49,7 @@ class Preprocess(object):
 
         # Robust scaler to transform data with many outliers to dense data
         scaler = StandardScaler()
-        df_raw[['visitor', 'congestion_1', 'congestion_2']] =\
+        df_raw[['visitor', 'congestion_1', 'congestion_2']] = \
             pd.DataFrame(scaler.fit_transform(df_raw[['visitor', 'congestion_1', 'congestion_2']]))
 
         # shift data to eliminate negative values and to use as explicit feedback
@@ -123,12 +123,12 @@ class Preprocess(object):
         print(f"len(total): {len(total_df)}, len(train): {len(train_dataframe)}, len(test): {len(test_dataframe)}")
 
         self.num_dict = {'user': total_df['userid'].nunique(),
-                    'item': total_df['itemid'].nunique(),
-                    'sex': total_df['sex'].max() + 1,
-                    'age': total_df['age'].max() + 1,
-                    'month': total_df['month'].max() + 1,
-                    'day': total_df['day'].max() + 1,
-                    'dayofweek': total_df['dayofweek'].max() + 1}
+                         'item': total_df['itemid'].nunique(),
+                         'sex': total_df['sex'].max() + 1,
+                         'age': total_df['age'].max() + 1,
+                         'month': total_df['month'].max() + 1,
+                         'day': total_df['day'].max() + 1,
+                         'dayofweek': total_df['dayofweek'].max() + 1}
 
         if self.save_data:
             PATH = os.path.join(self.folder_path, f'num_dict' + '.pkl')
@@ -142,7 +142,7 @@ class TourDataset(Dataset):
                  df: pd.DataFrame,
                  total_df: pd.DataFrame,
                  train: bool,
-                 rating_col:str):
+                 rating_col: str):
         super(TourDataset, self).__init__()
 
         self.df = df
@@ -171,13 +171,15 @@ class TourDataset(Dataset):
 
         # self.items[index][0]: positive feedback
         # self.items[index][1]: negative feedback
-        # train: year, uid, w, pos, neg
-        # test:  year, uid, w, r, pos
+        # train: year, uid, a, s, m, d, dow, pos, neg
+        # test:  year, uid, a, s, m, d, dow, r, pos
         if self.train:
-            return self.users[index][0], self.users[index][1],  self.users[index][2], \
+            return self.users[index][0], self.users[index][1], self.users[index][2], self.users[index][3], \
+                   self.users[index][4], self.users[index][5], self.users[index][6], \
                    self.items[index][0], self.items[index][1]
         else:
             return self.users[index][0], self.users[index][1], self.users[index][2], self.users[index][3], \
+                   self.users[index][4], self.users[index][5], self.users[index][6], self.users[index][7], \
                    self.items[index]
 
     def _negative_sampling(self):
@@ -199,25 +201,29 @@ class TourDataset(Dataset):
 
         for userid in df['userid'].unique():
             tmp = df.loc[df['userid'].isin([userid])]
-            
+
             quarter = tmp[self.rating_col].quantile(q=0.25)
-            tmp.loc[tmp[self.rating_col] < quarter, 'visitor'] = 0.0 
+            tmp.loc[tmp[self.rating_col] < quarter, 'visitor'] = 0.0
             pos_items = tmp.loc[tmp[self.rating_col] >= quarter, ['itemid']]
             neg_items = np.setxor1d(all_destinations, pos_items)
+            pos_tmp = tmp.loc[tmp[self.rating_col] >= quarter]
+            pos_item_set = zip(pos_tmp['year'],
+                               pos_tmp['userid'],
+                               pos_tmp['age'],
+                               pos_tmp['sex'],
+                               pos_tmp['month'],
+                               pos_tmp['day'],
+                               pos_tmp['dayofweek'],
+                               pos_tmp[self.rating_col],
+                               pos_tmp['itemid'])
 
-            pos_item_set = zip(tmp.loc[tmp[self.rating_col] >= quarter,'year'],
-                               tmp.loc[tmp[self.rating_col] >= quarter,'userid'],
-                               tmp.loc[tmp[self.rating_col] >= quarter,'dayofweek'],
-                               tmp.loc[tmp[self.rating_col] >= quarter,self.rating_col],
-                               tmp.loc[tmp[self.rating_col] >= quarter, 'itemid'])
-
-            for year, uid, w, r, iid in pos_item_set:
+            for year, uid, a, s, m, d, dow, r, iid in pos_item_set:
                 tmp_negs = neg_items.copy()
                 # positive instance
                 item = []
                 if not self.train:
                     items_list.append(iid)
-                    users_list.append([year, uid, w, r])
+                    users_list.append([year, uid, a, s, m, d, dow, r])
 
                 else:
                     item.append(iid)
@@ -230,10 +236,10 @@ class TourDataset(Dataset):
                 else:
                     items_list += negative_item.tolist()
                     for _ in range(ng_ratio):
-                        users_list.append([year, uid, w, r])
+                        users_list.append([year, uid, a, s, m, d, dow, r])
 
                 if self.train:
                     items_list.append(item)
-                    users_list.append([year, uid, w])
+                    users_list.append([year, uid, a, s, m, d, dow])
         print('Sampling ended!')
         return torch.LongTensor(users_list), torch.LongTensor(items_list)

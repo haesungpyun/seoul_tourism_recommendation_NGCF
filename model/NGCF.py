@@ -33,12 +33,11 @@ class NGCF(nn.Module):
 
         # self.user_embedding = nn.Parameter(torch.randn(self.n_user, self.emb_size))
         # self.item_embedding = nn.Parameter(torch.randn(self.n_item, self.emb_size))
-        # self.month_emb = nn.Embedding(num_dict['month'], self.emb_size//5)
-        # self.day_emb = nn.Embedding(num_dict['day'], self.emb_size//5)
-        # self.sex_emb = nn.Embedding(num_dict['sex'], self.emb_size//5)
-        # self.age_emb = nn.Embedding(num_dict['age'], self.emb_size//5)
-        # self.dow_emb = nn.Embedding(num_dict['dayofweek'], self.emb_size//5)
-        self.dow_emb = nn.Embedding(num_dict['dayofweek'], self.emb_size)
+        self.month_emb = nn.Embedding(num_dict['month'], self.emb_size//5)
+        self.day_emb = nn.Embedding(num_dict['day'], self.emb_size//5)
+        self.sex_emb = nn.Embedding(num_dict['sex'], self.emb_size//5)
+        self.age_emb = nn.Embedding(num_dict['age'], self.emb_size//5)
+        self.dow_emb = nn.Embedding(num_dict['dayofweek'], self.emb_size//5)
         self.item_embedding = nn.Embedding(self.n_item, self.emb_size)
         self.user_embedding = nn.Embedding(self.n_user, self.emb_size)
 
@@ -67,13 +66,12 @@ class NGCF(nn.Module):
         # initial embedding layer
         initializer(self.user_embedding.weight)
         initializer(self.item_embedding.weight)
-        initializer(self.dow_emb.weight)
 
-        # initializer(self.sex_emb.weight)
-        # initializer(self.age_emb.weight)
-        # initializer(self.dow_emb.weight)
-        # initializer(self.day_emb.weight)
-        # initializer(self.month_emb.weight)
+        initializer(self.age_emb.weight)
+        initializer(self.sex_emb.weight)
+        initializer(self.month_emb.weight)
+        initializer(self.dow_emb.weight)
+        initializer(self.day_emb.weight)
 
         weight_size_list = [self.emb_size] + self.weight_size
 
@@ -108,18 +106,16 @@ class NGCF(nn.Module):
         drop = torch.sparse.FloatTensor(i, v, mat.shape).to(self.device)
         return drop
 
-    def forward(self, year, u_id, dow, pos_item, neg_item, node_flag):
-        # age_emb = self.age_emb(age)
-        # month_emb = self.month_emb(month)
-        # day_emb = self.day_emb(day)
-        # sex_emb = self.sex_emb(sex)
-        # dow_emb = self.dow_emb(dow)
-        # feats = torch.cat((age_emb, month_emb, day_emb, sex_emb, dow_emb), dim=1)
-        #user_mlp = self.user_lin(feats)
-
+    def forward(self, year, u_id, age, sex, month, day, dow, pos_item, neg_item, node_flag):
+        age_emb = self.age_emb(age)
+        sex_emb = self.sex_emb(sex)
+        month_emb = self.month_emb(month)
+        day_emb = self.day_emb(day)
         dow_emb = self.dow_emb(dow)
-        self.user_embedding.weight.data[u_id] = (self.user_embedding.weight.data[u_id] + dow_emb.detach().clone()) * 0.5
-        #* (1 - self.mlp_ratio) + user_mlp.clone() * self.mlp_ratio
+        feats = torch.cat((age_emb, month_emb, day_emb, sex_emb, dow_emb), dim=1)
+        feats = feats.to(self.device)
+
+        self.user_embedding.weight.data[u_id] = (self.user_embedding.weight.data[u_id] + feats.detach().clone()) * 0.5
 
         year_idx = year.unique()[0] % 18
         L = self.lap_list[year_idx].to(self.device)

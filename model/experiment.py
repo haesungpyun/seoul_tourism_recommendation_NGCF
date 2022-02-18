@@ -36,13 +36,18 @@ class Experiment(nn.Module):
         for epoch in range(self.epochs):
             total_loss = 0
             d1 = datetime.now()
-            for year, u_id, dow, pos_item, neg_item in self.train_dataloader:
+            for year, u_id, age, sex, month, day, dow, pos_item, neg_item in self.train_dataloader:
                 year, u_id = year.to(self.device), u_id.to(self.device)
-                dow = dow.to(self.device)
+                age, sex = age.to(self.device), sex.to(self.device)
+                month, day, dow = month.to(self.device), day.to(self.device), dow.to(self.device)
                 pos_item, neg_item = pos_item.to(self.device), neg_item.to(self.device)
-                
+
                 u_embeds, pos_i_embeds, neg_i_embeds = self.model(year=year,
                                                                   u_id=u_id,
+                                                                  age=age,
+                                                                  sex=sex,
+                                                                  month=month,
+                                                                  day=day,
                                                                   dow=dow,
                                                                   pos_item=pos_item,
                                                                   neg_item=neg_item,
@@ -55,7 +60,8 @@ class Experiment(nn.Module):
                 train_bar.update(1)
             BPR, HR, NDCG, RMSE = self.eval()
             train_bpr = total_loss / len(self.train_dataloader)
-            print(f'epoch {epoch + 1}, Train BPR: {train_bpr}, Test BPR: {BPR}, HR:{HR}, NDCG:{NDCG}, RMSE:{RMSE}, Run time:{datetime.now()-d1}')
+            print(
+                f'epoch {epoch + 1}, Train BPR: {train_bpr}, Test BPR: {BPR}, HR:{HR}, NDCG:{NDCG}, RMSE:{RMSE}, Run time:{datetime.now() - d1}')
 
     def eval(self):
         NDCG = []
@@ -64,11 +70,19 @@ class Experiment(nn.Module):
         BPR = 0
         with torch.no_grad():
             self.model.eval()
-            for year, u_id, dow, rating, pos_item in self.test_dataloader:
-                year, u_id, pos_item = year.to(self.device), u_id.to(self.device), pos_item.to(self.device)
-                dow, rating = dow.to(self.device), rating.to(self.device)
+            for year, u_id, age, sex, month, day, dow, rating, pos_item in self.test_dataloader:
+                year, u_id = year.to(self.device), u_id.to(self.device)
+                age, sex = age.to(self.device), sex.to(self.device)
+                month, day, dow = month.to(self.device), day.to(self.device), dow.to(self.device)
+                rating = rating.to(self.device)
+                pos_item = pos_item.to(self.device)
+
                 u_embeds, pos_i_embeds, _ = self.model(year=year,
                                                        u_id=u_id,
+                                                       age=age,
+                                                       sex=sex,
+                                                       month=month,
+                                                       day=day,
                                                        dow=dow,
                                                        pos_item=pos_item,
                                                        neg_item=torch.empty(0),
@@ -95,11 +109,11 @@ class Experiment(nn.Module):
                 NDCG.append(self.Ndcg(gt_item=gt_rank, pred_items=recommends_NDCG))
 
                 # RMSE
-                pred_rate = pred_ratings[0,0]
+                pred_rate = pred_ratings[0, 0]
                 pred_rate = pred_rate.to(self.device)
                 RMSE += self.rmse(pred_rate, rating[0])
 
-        return (BPR/ len(self.test_dataloader) ), np.mean(HR), np.mean(NDCG), (RMSE / len(self.test_dataloader))
+        return (BPR / len(self.test_dataloader)), np.mean(HR), np.mean(NDCG), (RMSE / len(self.test_dataloader))
 
     def Ndcg(self, gt_item, pred_items):
         # IDCG = self.dcg(gt_items)
@@ -115,9 +129,10 @@ class Experiment(nn.Module):
             return 1
         return 0
 
+
 class RMSELoss(nn.Module):
     def __init__(self):
-        super(RMSELoss,self).__init__()
+        super(RMSELoss, self).__init__()
 
     def forward(self, pred, y):
         criterion = nn.MSELoss()
