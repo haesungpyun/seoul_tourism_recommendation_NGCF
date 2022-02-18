@@ -67,7 +67,7 @@ class Preprocess(object):
         if train_by_destination:
             df = self.df_raw
         else:
-            df = self.df_raw.loc[self.df_raw['year'] != '20']
+            df = self.df_raw.loc[self.df_raw['year'] != 20]
 
         # use age, sex, date as user Id
         def merge_cols():
