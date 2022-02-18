@@ -75,8 +75,6 @@ if __name__ == '__main__':
                  num_dict=num_dict,
                  batch_size=args.batch_size,
                  device=device).to(device=device)
-    # NGCF_implicit_visitor_256_1e-05_02_18_05_32
-    # NGCF_dow_0.5_visitor_3
     PATH = os.path.join(FOLDER_PATH, f'NGCF_dow_0.5_visitor_3' + '.pth')
     model.load_state_dict(torch.load(PATH, map_location=device))
     model.eval()

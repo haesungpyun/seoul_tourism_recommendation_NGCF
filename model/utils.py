@@ -6,18 +6,21 @@ import os
 import pickle
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, PowerTransformer
+from datetime import datetime
 
 
 class Preprocess(object):
     def __init__(self, root_dir: str,
                  train_by_destination: bool,
                  folder_path: str,
+                 scaler: str,
                  save_data: bool) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame):
 
         self.root_dir = root_dir
         self.train_by_destination = train_by_destination
         self.folder_path = folder_path
         self.save_data = save_data
+        self.scaler = scaler
         self.df_raw = self.load_preprocess_data()
         self.user_dict = None
         self.item_dict = None
@@ -29,15 +32,12 @@ class Preprocess(object):
         df_raw = pd.read_csv(path, sep='|')
 
         # consider congestion as preference
-        df_raw[['congestion_1', 'congestion_2']] = 1 / df_raw[['congestion_1', 'congestion_2']]
         df_raw = df_raw.drop(columns=['total_num', 'area', 'date365'])
         df_raw['date'] = pd.to_datetime(df_raw['date'].astype('str'))
 
         # reshape data seperated by time zone into one day
         df_raw = pd.pivot_table(df_raw, index=['date', 'destination', 'dayofweek', 'sex', 'age'],
-                                aggfunc={'congestion_1': 'sum',
-                                         'congestion_2': 'sum',
-                                         'visitor': 'sum'})
+                                aggfunc={'visitor': 'sum'})
         df_raw = df_raw.reset_index()
 
         # seperate year and month-day data to use as features
@@ -47,18 +47,6 @@ class Preprocess(object):
         df_raw['month-day'] = pd.DataFrame(df_raw['month'].apply(str) + df_raw['day'].apply(str))
         df_raw[['year', 'month', 'day']] = df_raw[['year', 'month', 'day']].apply(np.int64)
 
-        # Robust scaler to transform data with many outliers to dense data
-        scaler = StandardScaler()
-        df_raw[['visitor', 'congestion_1', 'congestion_2']] = \
-            pd.DataFrame(scaler.fit_transform(df_raw[['visitor', 'congestion_1', 'congestion_2']]))
-
-        # shift data to eliminate negative values and to use as explicit feedback
-        v_min = np.abs(df_raw['visitor'].min())
-        c1_min = np.abs(df_raw['congestion_1'].min())
-        c2_min = np.abs(df_raw['congestion_2'].min())
-        df_raw['visitor'] = df_raw['visitor'] + v_min
-        df_raw['congestion_1'] = df_raw['congestion_1'] + c1_min
-        df_raw['congestion_2'] = df_raw['congestion_2'] + c2_min
         return df_raw
 
     def map_userid(self):
@@ -91,10 +79,11 @@ class Preprocess(object):
         self.item_dict = item_map
 
         if self.save_data:
-            PATH = os.path.join(self.folder_path, f'user_dict' + '.pkl')
+            d1 = datetime.now()
+            PATH = os.path.join(self.folder_path, f'user_dict_{d1.month}_{d1.day}_{d1.hour}_{d1.minute}' + '.pkl')
             with open(PATH, 'wb') as f:
                 pickle.dump(self.user_dict, f)
-            PATH = os.path.join(self.folder_path, f'item_dict' + '.pkl')
+            PATH = os.path.join(self.folder_path, f'item_dict_{d1.month}_{d1.day}_{d1.hour}_{d1.minute}' + '.pkl')
             with open(PATH, 'wb') as f:
                 pickle.dump(self.item_dict, f)
             print('User, Item data Saved!')
@@ -104,6 +93,17 @@ class Preprocess(object):
     def split_train_test(self):
         total_df = self.map_userid()
         train_by_destination = self.train_by_destination
+
+        # PowerTransformer or StandardScaler to transform data with many outliers to dense data
+        if self.scaler == 'power':
+            scaler = PowerTransformer()
+        else:
+            scaler = StandardScaler()
+        total_df[['visitor']] = pd.DataFrame(scaler.fit_transform(total_df[['visitor']]))
+
+        # shift data to eliminate negative values and to use as explicit feedback
+        v_min = np.abs(total_df['visitor'].min())
+        total_df['visitor'] = total_df['visitor'] + v_min
 
         # ignore warnings
         np.warnings.filterwarnings('ignore')
@@ -199,14 +199,16 @@ class TourDataset(Dataset):
         else:
             ng_ratio = 24
 
+        quarter = df[self.rating_col].quantile(q=0.25)
+
         for userid in df['userid'].unique():
             tmp = df.loc[df['userid'].isin([userid])]
 
-            quarter = tmp[self.rating_col].quantile(q=0.25)
             tmp.loc[tmp[self.rating_col] < quarter, 'visitor'] = 0.0
-            pos_items = tmp.loc[tmp[self.rating_col] >= quarter, ['itemid']]
+            pos_items = tmp.loc[tmp[self.rating_col] >= quarter, 'itemid']
             neg_items = np.setxor1d(all_destinations, pos_items)
             pos_tmp = tmp.loc[tmp[self.rating_col] >= quarter]
+
             pos_item_set = zip(pos_tmp['year'],
                                pos_tmp['userid'],
                                pos_tmp['age'],

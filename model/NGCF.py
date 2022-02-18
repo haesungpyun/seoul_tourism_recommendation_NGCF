@@ -10,7 +10,7 @@ class NGCF(nn.Module):
                  layer_size: list,
                  node_dropout: float,
                  mess_dropout: list,
-                 mlp_ratio: float,
+                 emb_ratio: float,
                  lap_list: list,
                  num_dict: dict,
                  batch_size: int,
@@ -29,7 +29,7 @@ class NGCF(nn.Module):
 
         self.node_dropout = node_dropout
         self.mess_dropout = mess_dropout
-        self.mlp_ratio = mlp_ratio
+        self.emb_ratio = emb_ratio
 
         # self.user_embedding = nn.Parameter(torch.randn(self.n_user, self.emb_size))
         # self.item_embedding = nn.Parameter(torch.randn(self.n_item, self.emb_size))
@@ -40,15 +40,6 @@ class NGCF(nn.Module):
         self.dow_emb = nn.Embedding(num_dict['dayofweek'], self.emb_size//5)
         self.item_embedding = nn.Embedding(self.n_item, self.emb_size)
         self.user_embedding = nn.Embedding(self.n_user, self.emb_size)
-
-        # self.user_lin = []
-        # self.lin_1 = nn.Linear(in_features=self.emb_size, out_features=self.emb_size // 2, bias=True)
-        # self.lin_2 = nn.Linear(in_features=self.emb_size // 2, out_features=self.emb_size)
-        # self.user_lin.append(self.lin_1)
-        # self.user_lin.append(nn.LeakyReLU())
-        # self.user_lin.append(self.lin_2)
-        # self.user_lin.append(nn.LeakyReLU())
-        # self.user_lin = nn.Sequential(*self.user_lin)
 
         self.w1_list = []
         self.w2_list = []
@@ -112,10 +103,12 @@ class NGCF(nn.Module):
         month_emb = self.month_emb(month)
         day_emb = self.day_emb(day)
         dow_emb = self.dow_emb(dow)
+
         feats = torch.cat((age_emb, sex_emb, month_emb, day_emb, dow_emb), dim=1)
         feats = feats.to(self.device)
 
-        self.user_embedding.weight.data[u_id] = (self.user_embedding.weight.data[u_id] + feats.detach().clone()) * 0.5
+        self.user_embedding.weight.data[u_id] = self.user_embedding.weight.data[u_id] * (1 - self.emb_ratio) + \
+                                                feats.detach().clone() * (self.emb_ratio)
 
         year_idx = year.unique()[0] % 18
         L = self.lap_list[year_idx].to(self.device)

@@ -1,6 +1,4 @@
 import os
-import numpy as np
-import pandas as pd
 import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
@@ -13,6 +11,7 @@ from bprloss import BPR
 from experiment import Experiment
 from parsers import args
 
+
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f'device: {device}')
 if torch.cuda.is_available():
@@ -20,7 +19,7 @@ if torch.cuda.is_available():
     print('Count of using GPUs:', torch.cuda.device_count())
 
 # argparse dosen't support boolean type
-save_model = True if args.save_model == 'True' else False
+save_data = True if args.save_data == 'True' else False
 save_data = True if args.save_data == 'True' else False
 
 FOLDER_PATH ='saved_model_data'
@@ -29,7 +28,7 @@ if not os.path.exists(FOLDER_PATH):
 
 root_dir = '../../../LIG/Preprocessing/Datasets_v5.0/'
 #root_dir = '../data/'
-preprocess = Preprocess(root_dir=root_dir, train_by_destination=False, folder_path=FOLDER_PATH, save_data=save_data)
+preprocess = Preprocess(root_dir=root_dir, train_by_destination=False, folder_path=FOLDER_PATH, scaler=args.scaler, save_data=save_data)
 total_df, train_df, test_df, num_dict = preprocess.split_train_test()
 
 rating_col = 'visitor'
@@ -68,7 +67,7 @@ model = NGCF(embed_size=args.embed_size,
              layer_size=[64, 64, 64],
              node_dropout=args.node_dropout,
              mess_dropout=args.mess_dropout,
-             mlp_ratio=args.mlp_ratio,
+             emb_ratio=args.mlp_ratio,
              lap_list=lap_list,
              num_dict=num_dict,
              batch_size=args.batch_size,
@@ -91,7 +90,8 @@ train = Experiment(model=model,
 train.train()
 print(f'Train ended! Total Run time:{datetime.now()-d1}')
 
-if save_model:
-    PATH = os.path.join(FOLDER_PATH, f'NGCF_implicit_{rating_col}_{args.batch_size}_{args.lr}_{datetime.now()}' + '.pth')
+if save_data:
+    d1 = datetime.now()
+    PATH = os.path.join(FOLDER_PATH, f'NGCF_implicit_{args.emb_ratio}_{args.batch_size}_{args.lr}_{d1.month}_{d1.day}_{d1.hour}_{d1.minute}' + '.pth')
     torch.save(model.state_dict(), PATH)
     print('Model saved!')

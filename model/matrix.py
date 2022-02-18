@@ -6,6 +6,7 @@ import torch.nn as nn
 import pickle
 import os
 from scipy.linalg import get_blas_funcs
+from datetime import datetime
 
 
 class Matrix(nn.Module):
@@ -62,7 +63,8 @@ class Matrix(nn.Module):
 
         print('Laplacian Matrix Created!')
         if self.save_data:
-            PATH = os.path.join(self.folder_path,f'lap_list' + '.pkl')
+            d1 = datetime.now()
+            PATH = os.path.join(self.folder_path,f'lap_list_{d1.month}_{d1.day}_{d1.hour}_{d1.minute}' + '.pkl')
             with open(PATH, 'wb') as f:
                 pickle.dump(self.lap_list, f)
             print('Laplacian data Saved!')
