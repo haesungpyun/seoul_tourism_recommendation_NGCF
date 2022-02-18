@@ -31,7 +31,6 @@ class CPU_Unpickler(pickle.Unpickler):
 def map_func(b):
     return item_dict[b]
 
-
 vec_func = np.vectorize(map_func)
 
 if __name__ == '__main__':
@@ -76,7 +75,7 @@ if __name__ == '__main__':
                  num_dict=num_dict,
                  batch_size=args.batch_size,
                  device=device).to(device=device)
-    PATH = os.path.join(FOLDER_PATH, f'NGCF_dow_0.5_visitor_3' + '.pth')
+    PATH = os.path.join(FOLDER_PATH, f'NGCF_implicit_visitor_256_1e-05_02_18_05_32' + '.pth')
     model.load_state_dict(torch.load(PATH, map_location=device))
     model.eval()
     print('NGCF Model Loaded!')
@@ -111,7 +110,7 @@ if __name__ == '__main__':
     dest_dict = {'1': '역사관광지', '2': '휴양관광지', '3': '체험관광지', '4': '문화시설', '5': '건축/조형물', '6': '자연관광지', '7': '쇼핑'}
     rank2rate = []
     for i in range(100):
-        rank2rate.append(i)
+        rank2rate.append(100-i)
 
     print("Data Load time: ",  time.time()-d1)
 
@@ -127,7 +126,7 @@ if __name__ == '__main__':
     print('출발지를 입력하세요 (ex) 사직동)')
     depart = input()
 
-    if (dates[0] =='02') & (dates[1] =='29'):
+    if (dates[0] == '02') & (dates[1] == '29'):
         dates[1] = '28'
 
     month = torch.LongTensor([int(dates[0])]).to(device)
@@ -169,21 +168,18 @@ if __name__ == '__main__':
     print("관광지의 유형을 선택하세요\n"
           "1.역사관광지 \t2.휴양관광지\t3.체험관광지\t4.문화시설\t5.건축/조형물\t6.자연관광지\t7.쇼핑 (ex) 1 2 3):")
     genre = input().split()
-    genre = genre.split()
     genre_0 = dest_dict[genre[0]]
     genre_1 = dest_dict[genre[1]]
     genre_2 = dest_dict[genre[2]]
 
     print("선호도 혼잡도 거리의 중요도 비율을 입력하세요 (ex) 선호도 0.5 혼잡도 0.3 거리 0.2의 비율로 고려 -> 0.5 0.2 0.3)")
     condition = input().split()
-    condition = condition.split()
     vis_rat = float(condition[0])
     con_rat = float(condition[1])
     dis_rat = float(condition[2])
 
     print("추천 방법을 선택하세요 (ex 1:날짜 별 2: 성별 나이 별 추천 3: 날짜 성별 나이 별 4: 종합")
     rec_type = input()
-
 
     d1 = time.time()
     print('-----------------------------추천 관광지 산출 중...-----------------------------')

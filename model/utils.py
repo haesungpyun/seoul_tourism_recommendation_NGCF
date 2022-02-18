@@ -203,15 +203,14 @@ class TourDataset(Dataset):
             quarter = tmp[self.rating_col].quantile(q=0.25)
             tmp.loc[tmp[self.rating_col] < quarter, 'visitor'] = 0.0 
             pos_items = tmp.loc[tmp[self.rating_col] >= quarter, ['itemid']]
-    
+            neg_items = np.setxor1d(all_destinations, pos_items)
+
             pos_item_set = zip(tmp.loc[tmp[self.rating_col] >= quarter,'year'],
                                tmp.loc[tmp[self.rating_col] >= quarter,'userid'],
                                tmp.loc[tmp[self.rating_col] >= quarter,'dayofweek'],
                                tmp.loc[tmp[self.rating_col] >= quarter,self.rating_col],
                                tmp.loc[tmp[self.rating_col] >= quarter, 'itemid'])
-            
-            neg_items = np.setxor1d(all_destinations, pos_items)
-            
+
             for year, uid, w, r, iid in pos_item_set:
                 tmp_negs = neg_items.copy()
                 # positive instance
