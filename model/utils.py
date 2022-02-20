@@ -151,7 +151,7 @@ class TourDataset(Dataset):
         self.train = train
         self.rating_col = rating_col
 
-        self.users, self.items = self._negative_sampling()
+        self.users, self.items, self.negs = self._negative_sampling()
         print(f'len users:{self.users.shape}')
         print(f'len items:{self.items.shape}')
 
@@ -181,7 +181,7 @@ class TourDataset(Dataset):
         else:
             return self.users[index][0], self.users[index][1], self.users[index][2], self.users[index][3], \
                    self.users[index][4], self.users[index][5], self.users[index][6], self.users[index][7], \
-                   self.items[index]
+                   self.items[index], self.negs[index]
 
     def _negative_sampling(self):
         '''
@@ -191,14 +191,14 @@ class TourDataset(Dataset):
         print('Extract samples...')
         df = self.df
         total_df = self.total_df
-        users_list, items_list = [], []
+        users_list, items_list, neg_list = [], [], []
         all_destinations = total_df['itemid'].unique()
 
         # negative feedback dataset ratio
         if self.train:
             ng_ratio = 1
         else:
-            ng_ratio = 24
+            ng_ratio = 25
 
 
         for userid in df['userid'].unique():
@@ -236,12 +236,13 @@ class TourDataset(Dataset):
                 if self.train:
                     item += negative_item.tolist()
                 else:
-                    items_list += negative_item.tolist()
+                    neg_list += negative_item.tolist()
                     for _ in range(ng_ratio):
                         users_list.append([year, uid, a, s, m, d, dow, r])
+                        items_list.append(iid)
 
                 if self.train:
                     items_list.append(item)
                     users_list.append([year, uid, a, s, m, d, dow])
         print('Sampling ended!')
-        return torch.LongTensor(users_list), torch.LongTensor(items_list)
+        return torch.LongTensor(users_list), torch.LongTensor(items_list), torch.LongTensor(neg_list)
