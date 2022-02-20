@@ -70,7 +70,7 @@ if __name__ == '__main__':
                  layer_size=[64, 64, 64],
                  node_dropout=args.node_dropout,
                  mess_dropout=args.mess_dropout,
-                 mlp_ratio=args.mlp_ratio,
+                 emb_ratio=args.emb_ratio,
                  lap_list=lap_list,
                  num_dict=num_dict,
                  batch_size=args.batch_size,

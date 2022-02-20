@@ -58,10 +58,14 @@ class Experiment(nn.Module):
                 self.optimizer.step()
                 total_loss += loss
                 train_bar.update(1)
-            BPR, HR, NDCG, RMSE = self.eval()
+            # BPR, HR, NDCG, RMSE = self.eval()
+            BPR = self.eval()
             train_bpr = total_loss / len(self.train_dataloader)
+            print()
             print(
-                f'epoch {epoch + 1}, Train BPR: {train_bpr}, Test BPR: {BPR}, HR:{HR}, NDCG:{NDCG}, RMSE:{RMSE}, Run time:{datetime.now() - d1}')
+            f'epoch {epoch + 1}, Train BPR: {train_bpr}, Test BPR: {BPR}, Run time:{datetime.now() - d1}')
+            # print(
+            #     f'epoch {epoch + 1}, Train BPR: {train_bpr}, Test BPR: {BPR}, HR:{HR}, NDCG:{NDCG}, RMSE:{RMSE}, Run time:{datetime.now() - d1}')
 
     def eval(self):
         NDCG = []
@@ -70,14 +74,14 @@ class Experiment(nn.Module):
         BPR = 0
         with torch.no_grad():
             self.model.eval()
-            for year, u_id, age, sex, month, day, dow, rating, pos_item in self.test_dataloader:
+            for year, u_id, age, sex, month, day, dow, rating, pos_item, neg_items in self.test_dataloader:
                 year, u_id = year.to(self.device), u_id.to(self.device)
                 age, sex = age.to(self.device), sex.to(self.device)
                 month, day, dow = month.to(self.device), day.to(self.device), dow.to(self.device)
                 rating = rating.to(self.device)
-                pos_item = pos_item.to(self.device)
+                pos_item, neg_item = pos_item.to(self.device), neg_item.to(self.device)
 
-                u_embeds, pos_i_embeds, _ = self.model(year=year,
+                u_embeds, pos_i_embeds, neg_i_embeds = self.model(year=year,
                                                        u_id=u_id,
                                                        age=age,
                                                        sex=sex,
@@ -85,35 +89,37 @@ class Experiment(nn.Module):
                                                        day=day,
                                                        dow=dow,
                                                        pos_item=pos_item,
-                                                       neg_item=torch.empty(0),
+                                                       neg_item=neg_item,
                                                        node_flag=False)
-                gt_rank = pos_item[0].item()
+
+                # gt_rank = pos_item[0].item()
                 pred_ratings = torch.mm(u_embeds, pos_i_embeds.T)
 
                 # BPR
-                neg_i_embeds = pos_i_embeds[1:]
-                neg_i_embeds = torch.cat((neg_i_embeds, neg_i_embeds[:1]))
-                pos_i_embeds = pos_i_embeds[:1]
+                # neg_i_embeds = pos_i_embeds[1:]
+                # neg_i_embeds = torch.cat((neg_i_embeds, neg_i_embeds[:1]))
+                # pos_i_embeds = pos_i_embeds[:1]
 
                 loss = self.test_criterion(u_embeds, pos_i_embeds, neg_i_embeds)
                 BPR += loss
 
                 # HR
-                _, pred_rank = torch.topk(pred_ratings[0], 3)
-                recommends_HR = torch.take(pos_item, pred_rank).cpu().numpy().tolist()
-                HR.append(self.hit(gt_item=gt_rank, pred_items=recommends_HR))
+                # _, pred_rank = torch.topk(pred_ratings[0], 3)
+                # recommends_HR = torch.take(pos_item, pred_rank).cpu().numpy().tolist()
+                # HR.append(self.hit(gt_item=gt_rank, pred_items=recommends_HR))
+                #
+                # # NDCG
+                # _, pred_rank = torch.topk(pred_ratings[0], self.ks)
+                # recommends_NDCG = torch.take(pos_item, pred_rank).cpu().numpy().tolist()
+                # NDCG.append(self.Ndcg(gt_item=gt_rank, pred_items=recommends_NDCG))
+                #
+                # # RMSE
+                # pred_rate = pred_ratings[0, 0]
+                # pred_rate = pred_rate.to(self.device)
+                # RMSE += self.rmse(pred_rate, rating[0])
 
-                # NDCG
-                _, pred_rank = torch.topk(pred_ratings[0], self.ks)
-                recommends_NDCG = torch.take(pos_item, pred_rank).cpu().numpy().tolist()
-                NDCG.append(self.Ndcg(gt_item=gt_rank, pred_items=recommends_NDCG))
-
-                # RMSE
-                pred_rate = pred_ratings[0, 0]
-                pred_rate = pred_rate.to(self.device)
-                RMSE += self.rmse(pred_rate, rating[0])
-
-        return (BPR / len(self.test_dataloader)), np.mean(HR), np.mean(NDCG), (RMSE / len(self.test_dataloader))
+        return (BPR / len(self.test_dataloader))
+            # , np.mean(HR), np.mean(NDCG), (RMSE / len(self.test_dataloader))
 
     def Ndcg(self, gt_item, pred_items):
         # IDCG = self.dcg(gt_items)
