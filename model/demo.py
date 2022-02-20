@@ -47,10 +47,10 @@ if __name__ == '__main__':
 
     d1 = time.time()
     print('---------------------Load Id Data---------------------')
-    PATH = os.path.join(FOLDER_PATH, f'user_dict' + '.pkl')
+    PATH = os.path.join(FOLDER_PATH, f'user_dict_implicit_20_256_1e-05_1.0_standard_2_18' + '.pkl')
     with open(PATH, 'rb') as f:
         user_dict = CPU_Unpickler(f).load()
-    PATH = os.path.join(FOLDER_PATH, f'item_dict' + '.pkl')
+    PATH = os.path.join(FOLDER_PATH, f'item_dict_implicit_20_256_1e-05_1.0_standard_2_18' + '.pkl')
     with open(PATH, 'rb') as f:
         item_dict = CPU_Unpickler(f).load()
     PATH = os.path.join(FOLDER_PATH, f'num_dict' + '.pkl')
@@ -60,7 +60,7 @@ if __name__ == '__main__':
     print('User Id, Item Id, Number Data Loaded!')
 
     print('---------------------Load Lapliacian Data---------------------')
-    PATH = os.path.join(FOLDER_PATH, f'lap_list' + '.pkl')
+    PATH = os.path.join(FOLDER_PATH, f'lap_list_implicit_20_256_1e-05_1.0_standard_2_18' + '.pkl')
     with open(PATH, 'rb') as f:
         lap_list = CPU_Unpickler(f).load()
     print('Laplacian Matrix Data Loaded!')
@@ -75,7 +75,7 @@ if __name__ == '__main__':
                  num_dict=num_dict,
                  batch_size=args.batch_size,
                  device=device).to(device=device)
-    PATH = os.path.join(FOLDER_PATH, f'NGCF_dow_0.5_visitor_3' + '.pth')
+    PATH = os.path.join(FOLDER_PATH, f'NGCF_implicit_20_256_1e-05_1.0_standard_2_18' + '.pth')
     model.load_state_dict(torch.load(PATH, map_location=device))
     model.eval()
     print('NGCF Model Loaded!')
@@ -195,6 +195,10 @@ if __name__ == '__main__':
 
     u_embeds, _, _ = model(year=torch.LongTensor([0]),
                            u_id=u_id,
+                           age=age,
+                           sex=sex,
+                           month=month,
+                           day=day,
                            dow=dow,
                            pos_item=torch.LongTensor([0]),
                            neg_item=torch.empty(0),
@@ -280,17 +284,17 @@ if __name__ == '__main__':
         df_daily_user = df_daily_user.sort_values(by='distance')
         df_daily_user.loc[:, str(u_id)] = df_daily_user.loc[:, str(u_id)] + (np.array(rank2rate) * dis_rat)
 
-    # df_day = df_day.loc[(df_total['genre'] == genre_0) |
-    #                     (df_total['genre'] == genre_1) |
-    #                     (df_total['genre'] == genre_2)]
-    #
-    # df_user = df_user.loc[(df_total['genre'] == genre_0) |
-    #                     (df_total['genre'] == genre_1) |
-    #                     (df_total['genre'] == genre_2)]
-    #
-    # df_daily_user = df_daily_user.loc[(df_total['genre'] == genre_0) |
-    #                       (df_total['genre'] == genre_1) |
-    #                       (df_total['genre'] == genre_2)]
+    df_day = df_day.loc[(df_total['genre'] == genre_0) |
+                        (df_total['genre'] == genre_1) |
+                        (df_total['genre'] == genre_2)]
+
+    df_user = df_user.loc[(df_total['genre'] == genre_0) |
+                        (df_total['genre'] == genre_1) |
+                        (df_total['genre'] == genre_2)]
+
+    df_daily_user = df_daily_user.loc[(df_total['genre'] == genre_0) |
+                          (df_total['genre'] == genre_1) |
+                          (df_total['genre'] == genre_2)]
 
     while rec_type != '5':
         if rec_type == '1':
