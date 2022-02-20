@@ -7,7 +7,7 @@ parser.add_argument('-bt','--test_batch',type=int,default=25,help="Test Batch si
 parser.add_argument('-lr', '--lr', default=1e-3, type=float,help='learning rate for optimizer')
 parser.add_argument('-k','--ks',type=int,default=25,help='choose top@k for NDCG@k, HR@k')
 parser.add_argument('-emb','--embed_size',type=int,default=65,help='choose embedding size')
-parser.add_argument('-emb_ratio','--emb_ratio',type=float,default=0.5,help='choose ration between embedding and mlp weight from user features')
+parser.add_argument('-emb_ratio','--emb_ratio',type=float,default=1.0,help='choose ration between embedding and mlp weight from user features')
 parser.add_argument('-n','--node_dropout',type=float,default=0.2,help='choose node dropout ratio')
 parser.add_argument('-m','--mess_dropout',type=list,default=[0.1,0.1,0.1],help='choose message dropout ratio')
 parser.add_argument('-scaler','--scaler',type=str,default='power',help='choose scaler type(Power/Standard)')
