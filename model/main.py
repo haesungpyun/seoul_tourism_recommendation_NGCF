@@ -63,7 +63,7 @@ lap_list = matrix_generator.create_matrix()
 
 
 model = NGCF(embed_size=args.embed_size,
-             layer_size=[65, 65],
+             layer_size=[65, 65, 65],
              node_dropout=args.node_dropout,
              mess_dropout=args.mess_dropout,
              emb_ratio=args.emb_ratio,
