@@ -21,18 +21,22 @@ class Preprocess(object):
         self.root_dir = root_dir
         self.train_by_destination = train_by_destination
         self.folder_path = folder_path
+
         self.rating_col = rating_col
         self.save_data = save_data
         self.scaler = scaler
-        self.df_raw = self.load_preprocess_data()
+
         self.user_dict = None
         self.item_dict = None
         self.num_dict = None
 
+        self.df_raw = self.load_preprocess_data()
+
+
     def load_preprocess_data(self):
         root_dir = self.root_dir
         path = os.path.join(root_dir, 'Datasets_v5.0.txt')
-        df_raw = pd.read_csv(path, sep='|').sample(1000)
+        df_raw = pd.read_csv(path, sep='|')
 
         # consider congestion as preference
         df_raw = df_raw.drop(columns=['total_num', 'area', 'date365'])
@@ -40,7 +44,7 @@ class Preprocess(object):
 
         # reshape data seperated by time zone into one day
         df_raw = pd.pivot_table(df_raw, index=['date', 'destination', 'dayofweek', 'sex', 'age'],
-                                aggfunc={self.rating_col: 'sum'})
+                                aggfunc={'visitor': 'sum'})
         df_raw = df_raw.reset_index()
 
         # seperate year and month-day data to use as features
@@ -52,13 +56,14 @@ class Preprocess(object):
 
         return df_raw
 
-    def map_userid(self):
+    def map_ids(self, df_raw):
+        np.warnings.filterwarnings('ignore')
         train_by_destination = self.train_by_destination
 
         if train_by_destination:
-            df = self.df_raw
+            df = df_raw
         else:
-            df = self.df_raw.loc[self.df_raw['year'] != 20]
+            df = df_raw.loc[df_raw['year'] != 20]
 
         # use age, sex, date as user Id
         def merge_cols():
@@ -74,10 +79,8 @@ class Preprocess(object):
         def map_func(a, b):
             return user_map[a], item_map[b]
 
-        np.warnings.filterwarnings('ignore')
         vec_func = np.vectorize(map_func)
         df.loc[:, 'userid'], df.loc[:, 'itemid'] = vec_func(merged, df['destination'])
-
         self.user_dict = user_map
         self.item_dict = item_map
 
@@ -93,9 +96,8 @@ class Preprocess(object):
 
         return df
 
-    def split_train_test(self):
-        total_df = self.map_userid()
-        train_by_destination = self.train_by_destination
+    def scale_implicit(self):
+        total_df = self.map_ids(self.df_raw)
 
         # PowerTransformer or StandardScaler to transform data with many outliers to dense data
         if self.scaler == 'power':
@@ -113,12 +115,22 @@ class Preprocess(object):
             quarter = tmp[self.rating_col].quantile(q=0.25)
             neg_tmp = tmp.loc[tmp[self.rating_col] < quarter]
             total_df.loc[neg_tmp.index, self.rating_col] = 0
+        return total_df
+
+    def split_train_test(self):
+        total_df = self.scale_implicit()
+        train_by_destination = self.train_by_destination
 
         # ignore warnings
         np.warnings.filterwarnings('ignore')
 
         df_18 = total_df.loc[total_df['year'] == 18]
-        df_19 = total_df.loc[total_df['year'] == 19].sample(frac=0.3, replace=False)
+
+        train_19 = total_df.loc[total_df['year'] == 19]
+        df_19 = train_19.sample(frac=0.3, replace=False)
+        train_19 = pd.concat((train_19, df_19), axis=0).drop_duplicates(keep=False)
+
+        df_18 = pd.concat((df_18, train_19), axis=0)
 
         if train_by_destination:
             train_dataframe, test_dataframe, y_train, y_test = train_test_split(total_df, total_df['destination'],
@@ -138,7 +150,7 @@ class Preprocess(object):
                          'month': total_df['month'].max() + 1,
                          'day': total_df['day'].max() + 1,
                          'dayofweek': total_df['dayofweek'].max() + 1}
-
+        print(self.num_dict)
         if self.save_data:
             PATH = os.path.join(self.folder_path, f'num_dict' + '.pkl')
             with open(PATH, 'wb') as f:
@@ -212,7 +224,7 @@ class TourDataset(Dataset):
         for userid in df['userid'].unique():
             tmp = df.loc[df['userid'].isin([userid])]
             pos_tmp = tmp.loc[tmp[self.rating_col] > 0]
-            pos_items = pos_tmp.loc[ 'itemid']
+            pos_items = pos_tmp.loc[:, 'itemid']
             neg_items = np.setxor1d(all_destinations, pos_items)
 
             pos_item_set = zip(pos_tmp['year'],
