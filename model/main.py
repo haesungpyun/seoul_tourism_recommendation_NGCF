@@ -26,12 +26,11 @@ FOLDER_PATH ='saved_model_data'
 if not os.path.exists(FOLDER_PATH):
     os.mkdir(FOLDER_PATH)
 
-root_dir = '../../../LIG/Preprocessing/Datasets_v5.0/'
-#root_dir = '../data/'
-preprocess = Preprocess(root_dir=root_dir, train_by_destination=False, folder_path=FOLDER_PATH, scaler=args.scaler, save_data=save_data)
+#root_dir = '../../../LIG/Preprocessing/Datasets_v5.0/'
+root_dir = '../data/'
+rating_col = args.rating_col
+preprocess = Preprocess(root_dir=root_dir, train_by_destination=False, folder_path=FOLDER_PATH, rating_col=rating_col, scaler=args.scaler, save_data=save_data)
 total_df, train_df, test_df, num_dict = preprocess.split_train_test()
-
-rating_col = 'visitor'
 
 train_dataset = TourDataset(df=train_df,
                             total_df=total_df,
@@ -64,7 +63,7 @@ lap_list = matrix_generator.create_matrix()
 
 
 model = NGCF(embed_size=args.embed_size,
-             layer_size=[64, 64, 64],
+             layer_size=[65, 65],
              node_dropout=args.node_dropout,
              mess_dropout=args.mess_dropout,
              emb_ratio=args.emb_ratio,

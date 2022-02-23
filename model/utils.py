@@ -14,12 +14,14 @@ class Preprocess(object):
     def __init__(self, root_dir: str,
                  train_by_destination: bool,
                  folder_path: str,
+                 rating_col:str,
                  scaler: str,
                  save_data: bool) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame):
 
         self.root_dir = root_dir
         self.train_by_destination = train_by_destination
         self.folder_path = folder_path
+        self.rating_col = rating_col
         self.save_data = save_data
         self.scaler = scaler
         self.df_raw = self.load_preprocess_data()
@@ -30,7 +32,7 @@ class Preprocess(object):
     def load_preprocess_data(self):
         root_dir = self.root_dir
         path = os.path.join(root_dir, 'Datasets_v5.0.txt')
-        df_raw = pd.read_csv(path, sep='|')
+        df_raw = pd.read_csv(path, sep='|').sample(1000)
 
         # consider congestion as preference
         df_raw = df_raw.drop(columns=['total_num', 'area', 'date365'])
@@ -38,7 +40,7 @@ class Preprocess(object):
 
         # reshape data seperated by time zone into one day
         df_raw = pd.pivot_table(df_raw, index=['date', 'destination', 'dayofweek', 'sex', 'age'],
-                                aggfunc={'visitor': 'sum'})
+                                aggfunc={self.rating_col: 'sum'})
         df_raw = df_raw.reset_index()
 
         # seperate year and month-day data to use as features
@@ -100,11 +102,17 @@ class Preprocess(object):
             scaler = PowerTransformer()
         else:
             scaler = StandardScaler()
-        total_df[['visitor']] = pd.DataFrame(scaler.fit_transform(total_df[['visitor']]))
 
+        total_df[[self.rating_col]] = pd.DataFrame(scaler.fit_transform(total_df[[self.rating_col]]))
         # shift data to eliminate negative values and to use as explicit feedback
-        v_min = np.abs(total_df['visitor'].min())
-        total_df['visitor'] = total_df['visitor'] + v_min
+        v_min = np.abs(total_df[self.rating_col].min())
+        total_df[self.rating_col] = total_df[self.rating_col] + v_min
+
+        for userid in total_df['userid'].unique():
+            tmp = total_df.loc[total_df['userid'].isin([userid])]
+            quarter = tmp[self.rating_col].quantile(q=0.25)
+            neg_tmp = tmp.loc[tmp[self.rating_col] < quarter]
+            total_df.loc[neg_tmp.index, self.rating_col] = 0
 
         # ignore warnings
         np.warnings.filterwarnings('ignore')
@@ -152,6 +160,7 @@ class TourDataset(Dataset):
         self.rating_col = rating_col
 
         self.users, self.items = self._negative_sampling()
+
         print(f'len users:{self.users.shape}')
         print(f'len items:{self.items.shape}')
 
@@ -200,14 +209,11 @@ class TourDataset(Dataset):
         else:
             ng_ratio = 24
 
-
         for userid in df['userid'].unique():
             tmp = df.loc[df['userid'].isin([userid])]
-            quarter = tmp[self.rating_col].quantile(q=0.25)
-            tmp.loc[tmp[self.rating_col] < quarter, 'visitor'] = 0.0
-            pos_items = tmp.loc[tmp[self.rating_col] >= quarter, 'itemid']
+            pos_tmp = tmp.loc[tmp[self.rating_col] > 0]
+            pos_items = pos_tmp.loc[ 'itemid']
             neg_items = np.setxor1d(all_destinations, pos_items)
-            pos_tmp = tmp.loc[tmp[self.rating_col] >= quarter]
 
             pos_item_set = zip(pos_tmp['year'],
                                pos_tmp['userid'],
@@ -244,4 +250,4 @@ class TourDataset(Dataset):
                     items_list.append(item)
                     users_list.append([year, uid, a, s, m, d, dow])
         print('Sampling ended!')
-        return torch.LongTensor(users_list), torch.LongTensor(items_list)
+        return torch.LongTensor(users_list), torch.LongTensor(items_list),

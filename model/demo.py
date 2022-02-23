@@ -19,20 +19,12 @@ def input_filterchar(userinfo: str):
         str += token
     return int(str)
 
-
 class CPU_Unpickler(pickle.Unpickler):
     def find_class(self, module, name):
         if module == 'torch.storage' and name == '_load_from_bytes':
             return lambda b: torch.load(io.BytesIO(b), map_location='cpu')
         else:
             return super().find_class(module, name)
-
-
-def map_func(b):
-    return item_dict[b]
-
-
-vec_func = np.vectorize(map_func)
 
 if __name__ == '__main__':
     # check device
@@ -51,20 +43,28 @@ if __name__ == '__main__':
     PATH = os.path.join(FOLDER_PATH, f'user_dict_implicit_20_256_1e-05_1.0_standard_2_18' + '.pkl')
     with open(PATH, 'rb') as f:
         user_dict = CPU_Unpickler(f).load()
+
     PATH = os.path.join(FOLDER_PATH, f'item_dict_implicit_20_256_1e-05_1.0_standard_2_18' + '.pkl')
     with open(PATH, 'rb') as f:
         item_dict = CPU_Unpickler(f).load()
+
     PATH = os.path.join(FOLDER_PATH, f'num_dict' + '.pkl')
     with open(PATH, 'rb') as f:
         num_dict = CPU_Unpickler(f).load()
         print(num_dict)
+
+    def map_func(b):
+        return item_dict[b]
+    vec_func = np.vectorize(map_func)
     print('User Id, Item Id, Number Data Loaded!')
+
 
     print('---------------------Load Lapliacian Data---------------------')
     PATH = os.path.join(FOLDER_PATH, f'lap_list_implicit_20_256_1e-05_1.0_standard_2_18' + '.pkl')
     with open(PATH, 'rb') as f:
         lap_list = CPU_Unpickler(f).load()
     print('Laplacian Matrix Data Loaded!')
+
 
     print('---------------------Load Model---------------------')
     model = NGCF(embed_size=args.embed_size,
@@ -80,6 +80,7 @@ if __name__ == '__main__':
     model.load_state_dict(torch.load(PATH, map_location=device))
     model.eval()
     print('NGCF Model Loaded!')
+
 
     print('---------------------Load Destination Data---------------------')
     root_dir = '../data/'
@@ -102,6 +103,7 @@ if __name__ == '__main__':
     with open(PATH, 'rb') as f:
         df_departure_coordinate = CPU_Unpickler(f).load()
     print("Destination Data Loaded!")
+
 
     num_list = ['첫', '두', '세', '네']
     week = ['월', '화', '수', '목', '금', '토', '일']
@@ -166,10 +168,10 @@ if __name__ == '__main__':
 
     print("관광지의 유형을 선택하세요\n"
           "1.역사관광지 \t2.휴양관광지\t3.체험관광지\t4.문화시설\t5.건축/조형물\t6.자연관광지\t7.쇼핑 (ex) 1 2 3):")
-    # genre = input().split()
-    # genre_0 = dest_dict[genre[0]]
-    # genre_1 = dest_dict[genre[1]]
-    # genre_2 = dest_dict[genre[2]]
+    genre = input().split()
+    genre_0 = dest_dict[genre[0]]
+    genre_1 = dest_dict[genre[1]]
+    genre_2 = dest_dict[genre[2]]
 
     print("선호도 혼잡도 거리의 중요도 비율을 입력하세요 (ex) 선호도 0.5 혼잡도 0.3 거리 0.2의 비율로 고려 -> 0.5 0.2 0.3)")
     condition = input().split()
@@ -177,36 +179,37 @@ if __name__ == '__main__':
     con_rat = float(condition[1])
     dis_rat = float(condition[2])
 
-    # print("추천 방법을 선택하세요 (ex 1:날짜 별 2: 성별 나이 별 추천 3: 날짜 성별 나이 별 4: 종합")
-    # rec_type = input()
+    print("추천 방법을 선택하세요 (ex 1:날짜 별 2: 성별 나이 별 추천 3: 날짜 성별 나이 별 4: 종합")
+    rec_type = input()
     rec_type = '3'
 
     d1 = time.time()
     print('-----------------------------추천 관광지 산출 중...-----------------------------')
-    total_user_info = [[744, 25,0,1,15,5],
-                       [3664, 55,0,1,15, 5],
-                       [2569, 45,1,1,15, 5],
-                       [2204, 45,0,1,15, 5],
-                       [1474, 35,0,1,15, 2],
-                       [1474, 35,0,1,15, 5],
-                       [834,25,0,4,15, 5],
-                       [3754, 55,0,4,15, 5],
-                       [2659, 45,1,4, 15, 5],
-                       [2294, 45,0,4,15,5 ],
-                       [1564, 35,0,4,15, 2],
-                       [1564, 35,0,4,15, 5],
-                       [925 ,25,0,7,15, 5],
-                       [3845 ,55,0,7,15, 5],
-                       [2750 ,45,1,7,15,5],
-                       [2385 ,45,0,7,15,5],
-                       [1655 ,35,0,7,15, 2],
-                       [1655 ,35,0,7,15,  5],
-                       [1017 ,25,0,10,15, 5],
-                       [3937 ,55,0,10,15, 5],
-                       [2842 ,45,1,10,15, 5],
-                       [2477, 45,0,10,15, 5],
-                       [1748, 35,0,10,15, 2],
-                       [1748, 35,0,10,15, 5]]
+    # total_user_info = [[744, 25,0,1,15,5],
+    #                    [3664, 55,0,1,15, 5],
+    #                    [2569, 45,1,1,15, 5],
+    #                    [2204, 45,0,1,15, 5],
+    #                    [1474, 35,0,1,15, 5],
+    #                    [834,25,0,4,15, 5],
+    #                    [3754, 55,0,4,15, 5],
+    #                    [2659, 45,1,4, 15, 5],
+    #                    [2294, 45,0,4,15,5 ],
+    #                    [1564, 35,0,4,15, 5],
+    #                    [925 ,25,0,7,15, 5],
+    #                    [3845 ,55,0,7,15, 5],
+    #                    [2750 ,45,1,7,15,5],
+    #                    [2385 ,45,0,7,15,5],
+    #                    [1655 ,35,0,7,15,  5],
+    #                    [1017 ,25,0,10,15, 5],
+    #                    [3937 ,55,0,10,15, 5],
+    #                    [2842 ,45,1,10,15, 5],
+    #                    [2477, 45,0,10,15, 5],
+    #                    [1748, 35,0,10,15, 5]]
+    #
+    # total_user_info= [[1474, 35,0,1,15, 2],
+    #                   [1564, 35, 0, 4, 15, 2],
+    #                   [1655 ,35,0,7,15, 2],
+    #                   [1748, 35,0,10,15, 2],]
 
     total_user_info = torch.LongTensor(total_user_info)
 
@@ -307,23 +310,26 @@ if __name__ == '__main__':
                     np.array(rank2rate) * dis_rat)
 
         df_daily_user = df_daily_user.loc[all_rank[i].tolist()]
+        print(all_rating[i])
+        print(all_rank[i])
+        print(df_daily_user)
         df_daily_user.loc[:, str(u_id)] = df_daily_user.loc[:, str(u_id)] + (np.array(rank2rate) * vis_rat)
         df_daily_user = df_daily_user.loc[df_con_tmp.index]
         df_daily_user.loc[:, str(u_id)] = df_daily_user.loc[:, str(u_id)] + (np.array(rank2rate) * con_rat)
         df_daily_user = df_daily_user.sort_values(by='distance')
         df_daily_user.loc[:, str(u_id)] = df_daily_user.loc[:, str(u_id)] + (np.array(rank2rate) * dis_rat)
 
-    # df_day = df_day.loc[(df_total['genre'] == genre_0) |
-    #                     (df_total['genre'] == genre_1) |
-    #                     (df_total['genre'] == genre_2)]
-    #
-    # df_user = df_user.loc[(df_total['genre'] == genre_0) |
-    #                       (df_total['genre'] == genre_1) |
-    #                       (df_total['genre'] == genre_2)]
-    #
-    # df_daily_user = df_daily_user.loc[(df_total['genre'] == genre_0) |
-    #                                   (df_total['genre'] == genre_1) |
-    #                                   (df_total['genre'] == genre_2)]
+    df_day = df_day.loc[(df_total['genre'] == genre_0) |
+                        (df_total['genre'] == genre_1) |
+                        (df_total['genre'] == genre_2)]
+
+    df_user = df_user.loc[(df_total['genre'] == genre_0) |
+                          (df_total['genre'] == genre_1) |
+                          (df_total['genre'] == genre_2)]
+
+    df_daily_user = df_daily_user.loc[(df_total['genre'] == genre_0) |
+                                      (df_total['genre'] == genre_1) |
+                                      (df_total['genre'] == genre_2)]
 
     while rec_type != '5':
         if rec_type == '1':
@@ -355,7 +361,7 @@ if __name__ == '__main__':
                 tmp = df_user.loc[idx][['destination_name', col]]
                 tmp = tmp.sort_values(by=col, ascending=False).iloc[:int(rec_num)].reset_index().drop('itemid', axis=1)
                 tmp = tmp.rename(columns={'destination_name': '관광지 이름'})
-                print(tmp[['관광지 이름']])
+                print(tmp[['관광지 이름', col]])
 
             print("Recommend Run time: ", time.time() - d1)
             # print("추천 방법을 선택하세요 (ex 1:날짜 별 2: 성별 나이 별 추천 3: 날짜 성별 나이 별 4: 종합 5: 종료 ")
@@ -365,9 +371,10 @@ if __name__ == '__main__':
 
         if rec_type == '3':
             for col in df_daily_user.iloc[:, 3:].columns:
-                df_ge_med_bool = df_daily_user[col].ge(np.floor(df_daily_user.iloc[:, 3:].median(axis=1)), axis=0)
+                df_ge_med_bool = df_daily_user[col].ge(np.floor(df_daily_user.iloc[:, 3:].quantile(q=0, axis=1)), axis=0)
+
                 idx = df_daily_user[col][df_ge_med_bool].index
-                print( df_daily_user.iloc[:, 3:].columns)
+
                 info = list(user_dict.keys())[list(user_dict.values()).index(int(col))]
                 age = info[:2]
                 sex = info[2]
@@ -382,7 +389,7 @@ if __name__ == '__main__':
                 tmp = df_daily_user.loc[idx][['destination_name', col]]
                 tmp = tmp.sort_values(by=col, ascending=False).iloc[:int(rec_num)].reset_index().drop('itemid', axis=1)
                 tmp = tmp.rename(columns={'destination_name': '관광지 이름'})
-                print(tmp[['관광지 이름']])
+                print(tmp[['관광지 이름', col]])
 
             print("Recommend Run time: ", time.time() - d1)
             # print("추천 방법을 선택하세요 (ex 1:날짜 별 2: 성별 나이 별 추천 3: 날짜 성별 나이 별 4: 종합 5: 종료 ")
