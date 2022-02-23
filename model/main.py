@@ -19,8 +19,7 @@ if torch.cuda.is_available():
     print('Count of using GPUs:', torch.cuda.device_count())
 
 # argparse dosen't support boolean type
-save_data = True if args.save_data == 'True' else False
-save_data = True if args.save_data == 'True' else False
+save_data = False if args.save_data == 'False' else True
 
 FOLDER_PATH ='saved_model_data'
 if not os.path.exists(FOLDER_PATH):

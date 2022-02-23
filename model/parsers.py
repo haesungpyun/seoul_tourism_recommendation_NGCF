@@ -11,6 +11,6 @@ parser.add_argument('-emb_ratio','--emb_ratio',type=float,default=1.0,help='choo
 parser.add_argument('-n','--node_dropout',type=float,default=0.3,help='choose node dropout ratio')
 parser.add_argument('-m','--mess_dropout',type=list,default=[0.1,0.1, 0.1],help='choose message dropout ratio')
 parser.add_argument('-scaler','--scaler',type=str,default='power',help='choose scaler type(Power/Standard)')
-parser.add_argument('-sd','--save_data',type=str,default='False',help='Save model/user/item/laplacia data')
+parser.add_argument('-sd','--save_data',type=str,default='True',help='Save model/user/item/laplacia data')
 parser.add_argument('-r','--rating_col',type=str,default='visitor',help='Set rating column')
 args = parser.parse_args()
