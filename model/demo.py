@@ -40,11 +40,11 @@ if __name__ == '__main__':
 
     d1 = time.time()
     print('---------------------Load Id Data---------------------')
-    PATH = os.path.join(FOLDER_PATH, f'user_dict_implicit_20_256_1e-05_1.0_standard_2_18' + '.pkl')
+    PATH = os.path.join(FOLDER_PATH, f'user_dict_implicit_15_512_5e-05_1.0_standard_2_22' + '.pkl')
     with open(PATH, 'rb') as f:
         user_dict = CPU_Unpickler(f).load()
 
-    PATH = os.path.join(FOLDER_PATH, f'item_dict_implicit_20_256_1e-05_1.0_standard_2_18' + '.pkl')
+    PATH = os.path.join(FOLDER_PATH, f'item_dict_implicit_15_512_5e-05_1.0_standard_2_22' + '.pkl')
     with open(PATH, 'rb') as f:
         item_dict = CPU_Unpickler(f).load()
 
@@ -60,9 +60,10 @@ if __name__ == '__main__':
 
 
     print('---------------------Load Lapliacian Data---------------------')
-    PATH = os.path.join(FOLDER_PATH, f'lap_list_implicit_20_256_1e-05_1.0_standard_2_18' + '.pkl')
+    PATH = os.path.join(FOLDER_PATH, f'lap_list_implicit_15_512_5e-05_1.0_standard_2_22' + '.pkl')
     with open(PATH, 'rb') as f:
         lap_list = CPU_Unpickler(f).load()
+    print('lap_list', len(lap_list))
     print('Laplacian Matrix Data Loaded!')
 
 
@@ -76,7 +77,7 @@ if __name__ == '__main__':
                  num_dict=num_dict,
                  batch_size=args.batch_size,
                  device=device).to(device=device)
-    PATH = os.path.join(FOLDER_PATH, f'NGCF_implicit_12_512_1e-05_1.0_standard_2_23' + '.pth')
+    PATH = os.path.join(FOLDER_PATH, f'NGCF_implicit_15_512_5e-05_1.0_standard_2_23' + '.pth')
     model.load_state_dict(torch.load(PATH, map_location=device))
     model.eval()
     print('NGCF Model Loaded!')
@@ -185,32 +186,6 @@ if __name__ == '__main__':
 
     d1 = time.time()
     print('-----------------------------추천 관광지 산출 중...-----------------------------')
-    # total_user_info = [[744, 25,0,1,15,5],
-    #                    [3664, 55,0,1,15, 5],
-    #                    [2569, 45,1,1,15, 5],
-    #                    [2204, 45,0,1,15, 5],
-    #                    [1474, 35,0,1,15, 5],
-    #                    [834,25,0,4,15, 5],
-    #                    [3754, 55,0,4,15, 5],
-    #                    [2659, 45,1,4, 15, 5],
-    #                    [2294, 45,0,4,15,5 ],
-    #                    [1564, 35,0,4,15, 5],
-    #                    [925 ,25,0,7,15, 5],
-    #                    [3845 ,55,0,7,15, 5],
-    #                    [2750 ,45,1,7,15,5],
-    #                    [2385 ,45,0,7,15,5],
-    #                    [1655 ,35,0,7,15,  5],
-    #                    [1017 ,25,0,10,15, 5],
-    #                    [3937 ,55,0,10,15, 5],
-    #                    [2842 ,45,1,10,15, 5],
-    #                    [2477, 45,0,10,15, 5],
-    #                    [1748, 35,0,10,15, 5]]
-    #
-    # total_user_info= [[1474, 35,0,1,15, 2],
-    #                   [1564, 35, 0, 4, 15, 2],
-    #                   [1655 ,35,0,7,15, 2],
-    #                   [1748, 35,0,10,15, 2],]
-
     total_user_info = torch.LongTensor(total_user_info)
 
     # total_user_info = torch.unique(total_user_info, dim=0)
@@ -310,9 +285,6 @@ if __name__ == '__main__':
                     np.array(rank2rate) * dis_rat)
 
         df_daily_user = df_daily_user.loc[all_rank[i].tolist()]
-        print(all_rating[i])
-        print(all_rank[i])
-        print(df_daily_user)
         df_daily_user.loc[:, str(u_id)] = df_daily_user.loc[:, str(u_id)] + (np.array(rank2rate) * vis_rat)
         df_daily_user = df_daily_user.loc[df_con_tmp.index]
         df_daily_user.loc[:, str(u_id)] = df_daily_user.loc[:, str(u_id)] + (np.array(rank2rate) * con_rat)
