@@ -12,7 +12,7 @@ class BPR(nn.Module):
     def forward(self, u_idx, pos_idx, neg_idx):
         x_upos = torch.mul(u_idx, pos_idx).sum(dim=1)
         x_uneg = torch.mul(u_idx, neg_idx).sum(dim=1)
-        x_upn = x_upos - x_uneg
+        x_upn =torch.abs( x_upos) -torch.abs( x_uneg)
         log_prob = F.logsigmoid(x_upn).sum()
         regularization = self.weight_decay * (LA.norm(u_idx, dim=1).pow(2).sum() +
                                               LA.norm(pos_idx, dim=1).pow(2).sum() + LA.norm(neg_idx, dim=1).pow(2).sum())

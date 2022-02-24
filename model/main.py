@@ -25,8 +25,8 @@ FOLDER_PATH ='saved_model_data'
 if not os.path.exists(FOLDER_PATH):
     os.mkdir(FOLDER_PATH)
 
-#root_dir = '../../../LIG/Preprocessing/Datasets_v5.0/'
-root_dir = '../data/'
+root_dir = '../../../LIG/Preprocessing/Datasets_v5.0/'
+#root_dir = '../data/'
 rating_col = args.rating_col
 preprocess = Preprocess(root_dir=root_dir, train_by_destination=False, folder_path=FOLDER_PATH, rating_col=rating_col, scaler=args.scaler, save_data=save_data)
 total_df, train_df, test_df, num_dict = preprocess.split_train_test()

@@ -76,7 +76,7 @@ if __name__ == '__main__':
                  num_dict=num_dict,
                  batch_size=args.batch_size,
                  device=device).to(device=device)
-    PATH = os.path.join(FOLDER_PATH, f'NGCF_implicit_20_256_1e-05_1.0_standard_2_18' + '.pth')
+    PATH = os.path.join(FOLDER_PATH, f'NGCF_implicit_12_512_1e-05_1.0_standard_2_23' + '.pth')
     model.load_state_dict(torch.load(PATH, map_location=device))
     model.eval()
     print('NGCF Model Loaded!')

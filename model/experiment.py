@@ -70,6 +70,8 @@ class Experiment(nn.Module):
         BPR = 0
         with torch.no_grad():
             self.model.eval()
+            test_steps = self.epochs * len(self.test_dataloader)
+            test_bar = tqdm(range(test_steps))
             for year, u_id, age, sex, month, day, dow, rating, pos_item in self.test_dataloader:
                 year, u_id = year.to(self.device), u_id.to(self.device)
                 age, sex = age.to(self.device), sex.to(self.device)
@@ -113,6 +115,7 @@ class Experiment(nn.Module):
                 pred_rate = pred_rate.to(self.device)
                 RMSE += self.rmse(pred_rate, rating[0])
 
+                test_bar.update(1)
         return (BPR / len(self.test_dataloader)), np.mean(HR), np.mean(NDCG), (RMSE / len(self.test_dataloader))
 
     def Ndcg(self, gt_item, pred_items):
