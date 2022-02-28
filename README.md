@@ -30,3 +30,6 @@
         |   |-- num_dict.pkl
         |   `-- user_dict_implicit_15_512_5e-05_1.0_standard_2_22.pkl
         `-- utils.py
+
+### Quick Start
+    python demo.py
