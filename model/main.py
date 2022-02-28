@@ -25,8 +25,8 @@ FOLDER_PATH ='saved_model_data'
 if not os.path.exists(FOLDER_PATH):
     os.mkdir(FOLDER_PATH)
 
-root_dir = '../../../LIG/Preprocessing/Datasets_v5.0/'
-#root_dir = '../data/'
+#root_dir = '../../../LIG/Preprocessing/Datasets_v5.0/'
+root_dir = '../data/'
 rating_col = args.rating_col
 preprocess = Preprocess(root_dir=root_dir, train_by_destination=False, folder_path=FOLDER_PATH, rating_col=rating_col, scaler=args.scaler, save_data=save_data)
 total_df, train_df, test_df, num_dict = preprocess.split_train_test()
@@ -60,7 +60,6 @@ matrix_generator = Matrix(total_df=total_df,
                           device=device).to(device)
 lap_list = matrix_generator.create_matrix()
 
-
 model = NGCF(embed_size=args.embed_size,
              layer_size=[65, 65, 65],
              node_dropout=args.node_dropout,
@@ -71,10 +70,12 @@ model = NGCF(embed_size=args.embed_size,
              batch_size=args.batch_size,
              device=device).to(device=device)
 
+# Train 시, loss function과 Test 시, 평가 지표를 위한 loss function
 optimizer = optim.Adam(model.parameters(), lr=args.lr)
 criterion = BPR(weight_decay=0.025, batch_size=args.batch_size).to(device)
 test_criterion = BPR(weight_decay=0.025, batch_size=args.test_batch).to(device)
 
+# Trian 선언, train, evaluate
 d1 = datetime.now()
 train = Experiment(model=model,
                    optimizer=optimizer,
