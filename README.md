@@ -5,6 +5,14 @@
     IDE: vim
     GPU: NVIDIA RTX A6000
 
+### Dependency
+    Python        >= 3.7
+    tokenizers    >= 0.9.4
+    torch         >= 1.10.2
+    konlpy        >= 0.6.0
+    pandas        >= 1.3.5
+    numpy         >= 1.21.5
+
 >
     |-- model
         |-- NGCF.py
