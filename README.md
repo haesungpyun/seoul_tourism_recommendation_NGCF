@@ -35,28 +35,4 @@
 ### Quick Start
     python demo.py
 
-    .
-    |-- Create_userId.py
-    |-- GMF.py
-    |-- MLP.py
-    |-- NeuMF.py
-    |-- README.md
-    |-- create_congestion.py
-    |-- csv_to_pickle.py
-    |-- data_utils.py
-    |-- dataset
-    |   |-- congestion_1_2.csv
-    |   |-- congestion_1_2.pkl
-    |   |-- destination_id_name_genre_coordinate.csv
-    |   |-- destination_id_name_genre_coordinate.pkl
-    |   |-- seoul_gu_dong_coordinate.csv
-    |   `-- seoul_gu_dong_coordinate.pkl
-    |-- demo.py
-    |-- evaluate.py
-    |-- main.py
-    |-- model_congestion
-    |   |-- GMF.py
-    |   `-- MF.py
-    |-- parser.py
-    `-- pretrain_model
 
