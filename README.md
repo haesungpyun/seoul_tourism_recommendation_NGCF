@@ -1,6 +1,5 @@
 # seoul_tourism_recommendation_NGCF
 
-/code
 |-- model
     |-- NGCF.py
     |-- bprloss.py
