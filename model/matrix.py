@@ -5,7 +5,6 @@ import numpy as np
 import torch.nn as nn
 import pickle
 import os
-from scipy.linalg import get_blas_funcs
 from datetime import datetime
 from parsers import args
 
@@ -14,13 +13,12 @@ class Matrix(nn.Module):
     """
     Manage all operations according to Matrix creation
     """
-
     def __init__(self, total_df: pd.DataFrame,
                  cols: list,
                  rating_col: str,
                  num_dict: dict,
-                 folder_path:str,
-                 save_data:bool,
+                 folder_path: str,
+                 save_data: bool,
                  device):
         super(Matrix, self).__init__()
         self.df = total_df[cols]
@@ -31,18 +29,23 @@ class Matrix(nn.Module):
         self.n_user = num_dict['user']
         self.n_item = num_dict['item']
 
+        # R: user 수 x item 수 matrix, user가 평가한 item의 rating으로 이루어진 matrix
         self.R = sp.dok_matrix((self.n_user, self.n_item), dtype=np.float32)
+        # adj_mat: user-user, item-item, user-item간 연결성을 파악할 수 있도록 모두 모아둔 matrix
         self.adj_mat = sp.dok_matrix((self.n_user + self.n_item, self.n_user + self.n_item), dtype=np.float32)
+        # 년도 별로 user의 선호도(visitor)가 다르고, user가 소비한 item의 종류도 달라 연도를 구분하여 각 년도에 맞는 matrix 생성
         self.lap_list = []
         for _ in self.df['year'].unique():
             self.lap_list.append([])
 
     def create_matrix(self):
         for year in self.df['year'].unique():
+            # 각 연도 별, user가 평가한 item의 선호도(visitor)를 R에 저장 (user 별 일정 기준 이하:0, 이상: explicit rating)
             df_tmp = self.df[self.df['year'].isin([year])]
             self.R[df_tmp['userid'], df_tmp['itemid']] = df_tmp[self.rating_col]
 
-            # A = [[0, R],[R.T,0]]
+            # A(adj_mat) = [[0, R],
+            #              [R.T,0]]
             adj_mat = self.adj_mat.tolil()
             R = self.R.tolil()
             adj_mat[:self.n_user, self.n_user:] = R
@@ -53,12 +56,13 @@ class Matrix(nn.Module):
             d_sqrt = np.power(diag, -0.5, dtype=np.float32).squeeze()
             d_sqrt[np.isinf(d_sqrt)] = 0.
             d_mat_inv = np.zeros(adj_mat.shape)
-
             np.fill_diagonal(d_mat_inv, d_sqrt)
-            gemm = get_blas_funcs("gemm", [d_mat_inv, adj_mat.toarray(), d_mat_inv])
-            gemm(1, d_mat_inv, adj_mat.toarray(), d_mat_inv)
+
+            # laplacian matirx 생성
+            adj_mat = np.linalg.multi_dot([d_mat_inv, adj_mat.toarray(), d_mat_inv])
             adj_mat = sp.dok_matrix(adj_mat)
 
+            # 연도 별로 저장 18년 : 0, 19년 : 1
             year_idx = year % 18
             self.lap_list[year_idx] = self._convert_sp_mat_to_sp_tensor(adj_mat).to(self.device)
 
@@ -71,6 +75,7 @@ class Matrix(nn.Module):
             print('Laplacian data Saved!')
         return self.lap_list
 
+    # sp_matrix를 tensor로 변형하여 넘겨줌
     def _convert_sp_mat_to_sp_tensor(self, matrix_sp):
         coo = matrix_sp.tocoo()
         idxs = torch.LongTensor(np.mat([coo.row, coo.col]))

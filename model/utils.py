@@ -32,11 +32,11 @@ class Preprocess(object):
 
         self.df_raw = self.load_preprocess_data()
 
-
+    # 데이터를 불러오고 preprocessing 진행, 일자별 타임존을 무시하고 합침, datetime으로 변경
     def load_preprocess_data(self):
         root_dir = self.root_dir
         path = os.path.join(root_dir, 'Datasets_v5.0.txt')
-        df_raw = pd.read_csv(path, sep='|')
+        df_raw = pd.read_csv(path, sep='|').sample(100)
 
         # consider congestion as preference
         df_raw = df_raw.drop(columns=['total_num', 'area', 'date365'])
@@ -53,9 +53,9 @@ class Preprocess(object):
         df_raw['day'] = df_raw['date'].dt.strftime('%d')
         df_raw['month-day'] = pd.DataFrame(df_raw['month'].apply(str) + df_raw['day'].apply(str))
         df_raw[['year', 'month', 'day']] = df_raw[['year', 'month', 'day']].apply(np.int64)
-
         return df_raw
 
+    # 각 user(나이, 성별, 방문 월, 일)별 고유 user id, 각 관광지 별 item id 생성 후 mapping
     def map_ids(self, df_raw):
         np.warnings.filterwarnings('ignore')
         train_by_destination = self.train_by_destination
@@ -66,6 +66,7 @@ class Preprocess(object):
             df = df_raw.loc[df_raw['year'] != 20]
 
         # use age, sex, date as user Id
+        # user, item id 생성 후 mapping
         def merge_cols():
             merged = pd.Series(df['age'].apply(str) + df['sex'].apply(str) + df['month-day'].apply(str))
             user_map = {item: i for i, item in enumerate(np.sort(merged.unique()))}
@@ -93,9 +94,12 @@ class Preprocess(object):
             with open(PATH, 'wb') as f:
                 pickle.dump(self.item_dict, f)
             print('User, Item data Saved!')
-
         return df
 
+    # scaling 후 모든 값이 0 이상이도록 min 값만큼 shift
+    # 각 user의 rating 기준에 따라서(1/4, 1분위) 그 이하는 0으로 그 이상은 rating(visitor) 그대로 유지
+    # explicit한 data의 성질은 살리고 bpr loss, negative sampling의 장점을 살리기 위해서
+    #
     def scale_implicit(self):
         total_df = self.map_ids(self.df_raw)
 
@@ -117,6 +121,8 @@ class Preprocess(object):
             total_df.loc[neg_tmp.index, self.rating_col] = 0
         return total_df
 
+    # train, test data 분리, test에 속하지 않은 0.7의 19년도 데이터
+    # train data에 추가
     def split_train_test(self):
         total_df = self.scale_implicit()
         train_by_destination = self.train_by_destination
@@ -194,11 +200,11 @@ class TourDataset(Dataset):
         # self.items[index][0]: positive feedback
         # self.items[index][1]: negative feedback
         # train: year, uid, a, s, m, d, dow, pos, neg
-        # test:  year, uid, a, s, m, d, dow, r, pos
         if self.train:
             return self.users[index][0], self.users[index][1], self.users[index][2], self.users[index][3], \
                    self.users[index][4], self.users[index][5], self.users[index][6], \
                    self.items[index][0], self.items[index][1]
+        # test:  year, uid, a, s, m, d, dow, r, pos
         else:
             return self.users[index][0], self.users[index][1], self.users[index][2], self.users[index][3], \
                    self.users[index][4], self.users[index][5], self.users[index][6], self.users[index][7], \
@@ -221,6 +227,10 @@ class TourDataset(Dataset):
         else:
             ng_ratio = 24
 
+        # 각 user id 별로 negative sampling을 진행
+        # user id가 방문하지 않은 item id, 1/4(1분위 이하)를 negative로 생각하여 sampling
+        # train 시, 1개의 positive, negative
+        # test 시, 1개의 positive, ng_ratio 개의 negative
         for userid in df['userid'].unique():
             tmp = df.loc[df['userid'].isin([userid])]
             pos_tmp = tmp.loc[tmp[self.rating_col] > 0]

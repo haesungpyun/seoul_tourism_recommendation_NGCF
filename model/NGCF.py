@@ -29,8 +29,11 @@ class NGCF(nn.Module):
 
         self.node_dropout = node_dropout
         self.mess_dropout = mess_dropout
+
+        # user embedding과 각 feature embedding concat한 것 비율
         self.emb_ratio = emb_ratio
 
+        # user의 feature들 별로 embedding을 시키기 위해, embedding을 선언
         # self.user_embedding = nn.Parameter(torch.randn(self.n_user, self.emb_size))
         # self.item_embedding = nn.Parameter(torch.randn(self.n_item, self.emb_size))
         self.month_emb = nn.Embedding(num_dict['month'], self.emb_size//5)
@@ -93,7 +96,6 @@ class NGCF(nn.Module):
         v = mat._values()
         i = i[:, node_mask]
         v = v[node_mask]
-
         drop = torch.sparse.FloatTensor(i, v, mat.shape).to(self.device)
         return drop
 
@@ -104,9 +106,11 @@ class NGCF(nn.Module):
         day_emb = self.day_emb(day)
         dow_emb = self.dow_emb(dow)
 
+        # 각 feature들을 concat해 feats embedding 생성
         feats = torch.cat((age_emb, sex_emb, month_emb, day_emb, dow_emb), dim=1)
         feats = feats.to(self.device)
 
+        # user_embedding에 feats embedding을 할당
         self.user_embedding.weight.data[u_id] = self.user_embedding.weight.data[u_id] * (1 - self.emb_ratio) + \
                                                 feats.detach().clone() * (self.emb_ratio)
 
