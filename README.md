@@ -1,10 +1,11 @@
 # seoul_tourism_recommendation_NGCF
 
-    >Development environment
-    >OS: ubuntu
-    >IDE: vim
-    >GPU: NVIDIA RTX A6000
+    Development environment
+    OS: ubuntu
+    IDE: vim
+    GPU: NVIDIA RTX A6000
 
+>
     |-- model
         |-- NGCF.py
         |-- bprloss.py
