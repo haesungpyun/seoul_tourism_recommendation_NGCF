@@ -34,5 +34,6 @@
 
 ### Quick Start
     python demo.py
+    python main.py
 
 
